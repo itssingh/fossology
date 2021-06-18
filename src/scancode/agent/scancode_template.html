@@ -1,0 +1,14 @@
+{
+    "licenses": 
+    [
+        {% if licenses %}
+            {% for key, license in licenses.items() %}
+                {
+                    "key": "{{ license.key }}",
+                    "score": {{ license.score }}
+                }
+                {%if loop.nextitem and not loop.lastitem %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ]
+}
