@@ -1,6 +1,6 @@
 #include "licensematch.hpp"
 
-LicenseMatch::LicenseMatch(string licenseName, float percentage) :
+LicenseMatch::LicenseMatch(string licenseName, int percentage) :
   licenseName(licenseName),
   percentage(percentage)
 {
@@ -15,7 +15,7 @@ const string LicenseMatch::getLicenseName() const
   return licenseName;
 }
 
-float LicenseMatch::getPercentage() const
+int LicenseMatch::getPercentage() const
 {
   return percentage;
 }

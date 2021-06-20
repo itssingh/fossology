@@ -4,7 +4,7 @@
         {% if licenses %}
             {% for key, license in licenses.items() %}
                 {
-                    "key": "{{ license.key }}",
+                    "key": "{{ license.spdx_license_key }}",
                     "score": {{ license.score }}
                 }
                 {%if loop.nextitem and not loop.lastitem %},{% endif %}

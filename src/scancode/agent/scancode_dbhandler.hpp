@@ -23,7 +23,7 @@ public:
   ScancodeDatabaseHandler spawn() const;
 
   std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
-  bool saveLicenseMatch(int agentId, long pFileId, long licenseId, float percentMatch);
+  bool saveLicenseMatch(int agentId, long pFileId, long licenseId, int percentMatch);
 
   void insertOrCacheLicenseIdForName(std::string const& rfShortName);
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;

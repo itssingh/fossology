@@ -148,7 +148,7 @@ bool saveLicenseMatchesToDatabase(const State &state,
 
     int agentId = state.getAgentId();
     string rfShortname = match.getLicenseName();
-    float percent = match.getPercentage();
+    int percent = match.getPercentage();
 
     unsigned long licenseId =
         databaseHandler.getCachedLicenseIdForName(rfShortname);

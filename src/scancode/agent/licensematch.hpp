@@ -8,15 +8,15 @@ using namespace std;
 class LicenseMatch
 {
 public:
-  LicenseMatch(string licenseName, float percentage);
+  LicenseMatch(string licenseName, int percentage);
   ~LicenseMatch();
 
   const string getLicenseName() const;
-  float getPercentage() const;
+  int getPercentage() const;
 
 private:
   string licenseName;
-  float percentage;
+  int percentage;
 };
 
 #endif

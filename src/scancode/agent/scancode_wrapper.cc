@@ -43,7 +43,7 @@ vector<LicenseMatch> extractLicensesFromScancodeResult(string scancodeResult, co
     for (unsigned int i = 0; i < resultarrays.size(); i++) {
         Json::Value oneresult = resultarrays[i];
           string licensename = oneresult["key"].asString();
-          float percentage = oneresult["score"].asFloat();
+          int percentage = (int)oneresult["score"].asFloat();
           result.push_back(LicenseMatch(licensename,percentage));
     }
   } else {

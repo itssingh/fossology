@@ -42,7 +42,7 @@ bool ScancodeDatabaseHandler::saveLicenseMatch(
   int agentId, 
   long pFileId, 
   long licenseId, 
-  float percentMatch)
+  int percentMatch)
 {
   return dbManager.execPrepared(
     fo_dbManager_PrepareStamement(
@@ -120,10 +120,9 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
   fo_dbManager_PreparedStatement *searchWithOr = fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
       "selectLicenseIdWithOrScancode",
-      " SELECT rf_pk, 1 AS prior FROM ONLY license_ref"
+      " SELECT rf_pk FROM ONLY license_ref"
       " WHERE LOWER(rf_shortname) = LOWER($1)"
-      " OR LOWER(rf_shortname) = LOWER($2)"
-      " ORDER BY prior;",
+      " OR LOWER(rf_shortname) = LOWER($2);",
       char*, char*);
 
   /* First check similar matches */
@@ -222,7 +221,8 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
       ),
       rfShortName.c_str(),
       "License by Scancode.",
-      3 //why is 3 a detector type?
+      3 
+      // ASK: why is 3 a detector type?
     );
 
     success = queryResult && queryResult.getRowCount() > 0;
