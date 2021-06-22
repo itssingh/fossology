@@ -112,10 +112,10 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
 }
 
 /**
- * First insert into license cache so that if the licencse if new it gets inserted
- * or if old then simply return primary_key from license_ref table
+ * First insert into license cache so that if the licencse if new it gets
+ * inserted or if old then simply return primary_key from license_ref table
  * 
- * second we query license cahce for the primary key to store the short_name 
+ * second we query license cahce for the primary key to store the short_name
  * and percentage and pk all in license_file table
  */
 
@@ -149,6 +149,8 @@ bool saveLicenseMatchesToDatabase(const State &state,
     int agentId = state.getAgentId();
     string rfShortname = match.getLicenseName();
     int percent = match.getPercentage();
+    unsigned start = match.getStartPosition();
+    unsigned length = match.getLength();
 
     unsigned long licenseId =
         databaseHandler.getCachedLicenseIdForName(rfShortname);
@@ -160,12 +162,22 @@ bool saveLicenseMatchesToDatabase(const State &state,
       return false;
     }
 
-    if (!databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId,
-                                          percent)) {
+    long licenseFileId =
+        databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId, percent);
+
+    if (licenseFileId > 0) {
+      bool highlightRes =
+          databaseHandler.saveHighlightInfo(licenseFileId, start, length);
+      if (!highlightRes) {
+        databaseHandler.rollback();
+        cout << "failing save licensehighlight" << endl;
+      }
+    }
+    else {
       databaseHandler.rollback();
       cout << "failing save licenseMatch" << endl;
       return false;
-    };
+    }
   }
 
   return databaseHandler.commit();

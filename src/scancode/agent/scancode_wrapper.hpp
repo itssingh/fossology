@@ -18,6 +18,6 @@ using namespace std;
 
 string scanFileWithScancode(const State& state, const fo::File& file);
 string scanFileWithScancode(string filename);
-vector<LicenseMatch> extractLicensesFromScancodeResult(string scancodeResult, const string& filename);
+vector<LicenseMatch> extractLicensesFromScancodeResult( const string& scancodeResult, const string& filename);
 
 #endif 

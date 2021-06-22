@@ -21,16 +21,14 @@ public:
   ScancodeDatabaseHandler(fo::DbManager dbManager);
   ScancodeDatabaseHandler(ScancodeDatabaseHandler&& other) : fo::AgentDatabaseHandler(std::move(other)) {};
   ScancodeDatabaseHandler spawn() const;
-
   std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
-  bool saveLicenseMatch(int agentId, long pFileId, long licenseId, int percentMatch);
-
+  long saveLicenseMatch(int agentId, long pFileId, long licenseId, int percentMatch);
+  bool saveHighlightInfo(long licenseFileId, unsigned start, unsigned length);
   void insertOrCacheLicenseIdForName(std::string const& rfShortName);
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
   unsigned long selectOrInsertLicenseIdForName(std::string rfShortname);
-
   std::unordered_map<std::string,long> licenseRefCache;
 };
 

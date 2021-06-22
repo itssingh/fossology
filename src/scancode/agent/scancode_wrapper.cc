@@ -4,6 +4,28 @@
 #include <iostream>
 #include<fstream>
 
+unsigned getFilePointer(const string& filename,
+  size_t start_line, 
+  const string& match_text){
+  ifstream checkfile(filename);
+  string str;
+  if(checkfile.is_open()){
+    for (size_t i = 0; i <start_line-1; i++)
+    {
+      getline(checkfile, str);
+    }
+    int file_p = checkfile.tellg();
+    getline(checkfile, str);
+    cout<< "Checkline="<<str<<"\n";
+    unsigned int pos= str.find(match_text);
+    if(pos!=string::npos){
+
+      return file_p+pos;
+    }
+  }
+  return -1;
+}
+
 string scanFileWithScancode(const State &state, const fo::File &file) {
 
   FILE *in;
@@ -12,7 +34,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   // "scancode -l --custom-output - --custom-template template.html " + filename
 
   string command =
-      "scancode -l --custom-output - --custom-template scancode_template.html " + file.getFileName();
+      "scancode -l --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
@@ -28,12 +50,12 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
     cout << "could not execute scancode command: " << command << endl;
     bail(1);
   }
-  cout<<result<<endl;
-  int startjson = result.find("{");
-  return result.substr(startjson, string::npos);
+  unsigned int startjson = result.find("{");
+  result=result.substr(startjson, string::npos);
+return result;
 }
 
-vector<LicenseMatch> extractLicensesFromScancodeResult(string scancodeResult, const string& filename) {
+vector<LicenseMatch> extractLicensesFromScancodeResult(const string& scancodeResult, const string& filename) {
   Json::Reader scanner;
   Json::Value scancodevalue;
   bool isSuccessful = scanner.parse(scancodeResult, scancodevalue);
@@ -44,7 +66,12 @@ vector<LicenseMatch> extractLicensesFromScancodeResult(string scancodeResult, co
         Json::Value oneresult = resultarrays[i];
           string licensename = oneresult["key"].asString();
           int percentage = (int)oneresult["score"].asFloat();
-          result.push_back(LicenseMatch(licensename,percentage));
+          string match_text = oneresult["matched_text"].asString();
+          unsigned long start_line=oneresult["start_line"].asUInt();
+          string temp_text= match_text.substr(0,match_text.find("\n"));
+          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+          unsigned length = match_text.length();
+          result.push_back(LicenseMatch(licensename,percentage,start_pointer,length));
     }
   } else {
     cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()

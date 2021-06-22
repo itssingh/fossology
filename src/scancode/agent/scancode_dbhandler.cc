@@ -38,17 +38,18 @@ vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadI
   return queryFileIdsVectorForUpload(uploadId,true);
 }
 
-bool ScancodeDatabaseHandler::saveLicenseMatch(
+
+long ScancodeDatabaseHandler::saveLicenseMatch(
   int agentId, 
   long pFileId, 
   long licenseId, 
   int percentMatch)
 {
-  return dbManager.execPrepared(
+  QueryResult result = dbManager.execPrepared(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
       "saveLicenseMatch",
-      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk, rf_match_pct) VALUES ($1, $2, $3, $4)",
+      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk, rf_match_pct) VALUES ($1, $2, $3, $4) RETURNING fl_pk",
       int, long, long, unsigned
     ),
     agentId,
@@ -56,7 +57,36 @@ bool ScancodeDatabaseHandler::saveLicenseMatch(
     licenseId,
     percentMatch
   );
+  long licenseFilePK= -1;
+  if(!result.isFailed()){
+    
+    vector<unsigned long> res = result.getSimpleResults<unsigned long>(0,
+    fo::stringToUnsignedLong);
+
+    licenseFilePK = res.at(0);
+  }
+  return licenseFilePK;  
 }
+
+
+bool ScancodeDatabaseHandler::saveHighlightInfo(
+  long licenseFileId,
+  unsigned start,
+  unsigned length)
+{
+  cout<<"saving highlight info"<<endl;
+  return dbManager.execPrepared(
+    fo_dbManager_PrepareStamement(
+      dbManager.getStruct_dbManager(),
+      "saveHighlightInfo",
+      "INSERT INTO highlight(fl_fk, type, start, len) VALUES ($1, 'L', $2, $3 )",
+      long, unsigned, unsigned
+    ),
+    licenseFileId,
+    start,
+    length
+  );}
+
 
 void ScancodeDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortName)
 {
@@ -189,6 +219,7 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
     return result;
   }
 
+// TODO:Add text_url and license_name in license_ref table.
 
   unsigned count = 0;
   while ((!success) && count++<3)
@@ -222,7 +253,7 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
       rfShortName.c_str(),
       "License by Scancode.",
       3 
-      // ASK: why is 3 a detector type?
+      
     );
 
     success = queryResult && queryResult.getRowCount() > 0;

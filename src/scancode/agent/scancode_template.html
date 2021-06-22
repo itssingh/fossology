@@ -5,7 +5,9 @@
             {% for key, license in licenses.items() %}
                 {
                     "key": "{{ license.spdx_license_key }}",
-                    "score": {{ license.score }}
+                    "score": {{ license.score }},
+                    "start_line": {{ license.start_line }},
+                    "matched_text": {{ license.matched_text|tojson }}
                 }
                 {%if loop.nextitem and not loop.lastitem %},{% endif %}
             {% endfor %}
