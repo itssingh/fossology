@@ -6,6 +6,8 @@
                 {
                     "key": "{{ license.spdx_license_key }}",
                     "score": {{ license.score }},
+                    "name": "{{ license.name }}",
+                    "text_url": "{{ license.text_url }}",
                     "start_line": {{ license.start_line }},
                     "matched_text": {{ license.matched_text|tojson }}
                 }

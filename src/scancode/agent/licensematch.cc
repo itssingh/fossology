@@ -1,8 +1,10 @@
 #include "licensematch.hpp"
 
-LicenseMatch::LicenseMatch(string licenseName, int percentage, unsigned startPosition, unsigned length) :
+LicenseMatch::LicenseMatch(string licenseName, int percentage, string licenseFullName, string textUrl, unsigned startPosition, unsigned length) :
   licenseName(licenseName),
   percentage(percentage),
+  licenseFullName(licenseFullName),
+  textUrl(textUrl),
   startPosition(startPosition),
   length(length)
 {
@@ -20,6 +22,16 @@ const string LicenseMatch::getLicenseName() const
 int LicenseMatch::getPercentage() const
 {
   return percentage;
+}
+
+const string LicenseMatch::getLicenseFullName() const
+{
+  return licenseFullName;
+}
+
+const string LicenseMatch::getTextUrl() const
+{
+  return textUrl;
 }
 
 unsigned LicenseMatch::getStartPosition() const

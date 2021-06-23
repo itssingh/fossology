@@ -88,11 +88,11 @@ bool ScancodeDatabaseHandler::saveHighlightInfo(
   );}
 
 
-void ScancodeDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortName)
+void ScancodeDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortName, string const& rfFullName, string const& rfTextUrl)
 {
   if (getCachedLicenseIdForName(rfShortName)==0)
   {
-    unsigned long licenseId = selectOrInsertLicenseIdForName(rfShortName);
+    unsigned long licenseId = selectOrInsertLicenseIdForName(rfShortName, rfFullName, rfTextUrl);
 
     if (licenseId > 0)
     {
@@ -135,11 +135,10 @@ bool hasEnding(string const &firstString, string const &ending)
 }
 
 // insert license if not present in license_ref and return its primary key
-unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfShortName)
+unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfShortName, string rfFullname, string rfTexturl)
 {
   bool success = false;
   unsigned long result = 0;
-
 
   icu::UnicodeString unicodeCleanShortname = fo::recodeToUnicode(rfShortName);
 
@@ -228,7 +227,6 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
       continue;
 
     dbManager.queryPrintf("LOCK TABLE license_ref");
-
     QueryResult queryResult = dbManager.execPrepared(
       fo_dbManager_PrepareStamement(
         dbManager.getStruct_dbManager(),
@@ -239,8 +237,8 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
             " WHERE rf_shortname = $1"
           "),"
           "insertNew AS ("
-            "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
-            " SELECT $1, $2, $3"
+            "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type, rf_fullname, rf_url)"
+            " SELECT $1, $2, $3, $4, $5"
             " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
             " RETURNING rf_pk"
           ") "
@@ -248,11 +246,13 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
         "SELECT rf_pk FROM insertNew "
         "UNION "
         "SELECT rf_pk FROM selectExisting",
-        char*, char*, int
+        char*, char*, int, char* , char* 
       ),
       rfShortName.c_str(),
       "License by Scancode.",
-      3 
+      4,
+      rfFullname.c_str(),
+      rfTexturl.c_str()
       
     );
 

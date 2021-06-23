@@ -24,11 +24,11 @@ public:
   std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
   long saveLicenseMatch(int agentId, long pFileId, long licenseId, int percentMatch);
   bool saveHighlightInfo(long licenseFileId, unsigned start, unsigned length);
-  void insertOrCacheLicenseIdForName(std::string const& rfShortName);
+  void insertOrCacheLicenseIdForName(std::string const& rfShortName, std::string const& rfFullname, std::string const& rfTexturl);
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
-  unsigned long selectOrInsertLicenseIdForName(std::string rfShortname);
+  unsigned long selectOrInsertLicenseIdForName(std::string rfShortname, std::string rfFullname, std::string rfTexturl);
   std::unordered_map<std::string,long> licenseRefCache;
 };
 

@@ -31,8 +31,6 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   FILE *in;
   char buffer[512];
 
-  // "scancode -l --custom-output - --custom-template template.html " + filename
-
   string command =
       "scancode -l --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
   string result = "";
@@ -66,12 +64,14 @@ vector<LicenseMatch> extractLicensesFromScancodeResult(const string& scancodeRes
         Json::Value oneresult = resultarrays[i];
           string licensename = oneresult["key"].asString();
           int percentage = (int)oneresult["score"].asFloat();
+          string full_name=oneresult["name"].asString();
+          string text_url=oneresult["text_url"].asString();
           string match_text = oneresult["matched_text"].asString();
           unsigned long start_line=oneresult["start_line"].asUInt();
           string temp_text= match_text.substr(0,match_text.find("\n"));
           unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
           unsigned length = match_text.length();
-          result.push_back(LicenseMatch(licensename,percentage,start_pointer,length));
+          result.push_back(LicenseMatch(licensename,percentage,full_name,text_url,start_pointer,length));
     }
   } else {
     cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()
