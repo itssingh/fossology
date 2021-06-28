@@ -32,7 +32,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   char buffer[512];
 
   string command =
-      "scancode -l --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
+      "scancode -lc --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
@@ -72,6 +72,42 @@ vector<LicenseMatch> extractLicensesFromScancodeResult(const string& scancodeRes
           unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
           unsigned length = match_text.length();
           result.push_back(LicenseMatch(licensename,percentage,full_name,text_url,start_pointer,length));
+    }
+  } else {
+    cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()
+         << endl;
+    bail(-30);
+  }
+  return result;
+}
+
+vector<Match> extractOthersFromScancodeResult(const string& scancodeResult, const string& filename) {
+  Json::Reader scanner;
+  Json::Value scancodevalue;
+  bool isSuccessful = scanner.parse(scancodeResult, scancodevalue);
+  vector<Match> result;
+  if (isSuccessful) {
+    Json::Value resultarrays = scancodevalue["copyrights"];
+    for (unsigned int i = 0; i < resultarrays.size(); i++) {
+        Json::Value oneresult = resultarrays[i];
+          char type = 'c';
+          string copyrightname = oneresult["value"].asString();
+          unsigned long start_line=oneresult["start"].asUInt();
+          string temp_text= copyrightname.substr(0,copyrightname.find("\n"));
+          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+          unsigned length = copyrightname.length();
+          result.push_back(Match(type,copyrightname,start_pointer,length));
+    }
+   Json::Value resultarrays = scancodevalue["holders"];
+    for (unsigned int i = 0; i < resultarrays.size(); i++) {
+        Json::Value oneresult = resultarrays[i];
+          char type = 'h';
+          string holdername = oneresult["value"].asString();
+          unsigned long start_line=oneresult["start"].asUInt();
+          string temp_text= holdername.substr(0,holdername.find("\n"));
+          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+          unsigned length = holdername.length();
+          result.push_back(Match(type,holdername,start_pointer,length));
     }
   } else {
     cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()

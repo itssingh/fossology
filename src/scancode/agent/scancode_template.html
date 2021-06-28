@@ -14,5 +14,39 @@
                 {%if loop.nextitem and not loop.lastitem %},{% endif %}
             {% endfor %}
         {% endif %}
+    ],
+    "copyrights": 
+    [
+    {% if files.license_copyright %}
+        {% for path, data in files.license_copyright.items() %}
+            {% for row in data %}
+                {% if row.what != 'license' %}
+                    {
+                         "value": "{{ row.value }}",
+                         "start": {{ row.start }},
+                         "end": {{ row.end }}
+                     }
+                {%if loop.nextitem and not loop.lastitem %},{% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+    ],
+    "holders": 
+    [
+        {% if files.infos %}
+            {% for path, row in files.infos.items() %}
+                {% if row.holders %}
+                    {% for data in row.holders %}
+                        {
+                             "value": "{{ data.value }}",
+                             "start_line": {{ data.start_line }},
+                             "end_line": {{ data.end_line }}
+                        }
+                        {%if loop.nextitem and not loop.lastitem %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     ]
 }

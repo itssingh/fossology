@@ -7,6 +7,20 @@ using namespace fo;
 using namespace std;
 
 /**
+ * \brief Default constructor for DatabaseEntry
+ */
+DatabaseEntry::DatabaseEntry() :
+        agent_fk(0),
+        pfile_fk(0),
+        content(""),
+        hash(""),
+        type(""),
+        copy_startbyte(0),
+        copy_endbyte(0)
+{
+};
+
+/**
  * Default constructor for scancodeDatabaseHandler
  * @param dbManager DBManager to be used
  */
@@ -218,7 +232,6 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
     return result;
   }
 
-// TODO:Add text_url and license_name in license_ref table.
 
   unsigned count = 0;
   while ((!success) && count++<3)
@@ -271,3 +284,6 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
 
   return result;
 }
+
+
+// TODO: Make an object for license match fields like ojo then pass them to functions.

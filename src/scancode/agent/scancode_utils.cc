@@ -4,6 +4,10 @@
 
 using namespace fo;
 
+/**
+ * \brief Disconnect with scheduler returning an error code and exit
+ * \param exitval Error code
+ */
 void bail(int exitval) {
   fo_scheduler_disconnect(exitval);
   exit(exitval);
@@ -13,6 +17,12 @@ State getState(DbManager &dbManager) {
   int agentId = queryAgentId(dbManager);
   return State(agentId);
 }
+
+/**
+ * \brief Get agent id, exit if agent id is incorrect
+ * \param[in]  dbConn Database connection object
+ * \return ID of the agent
+ */
 
 int queryAgentId(DbManager &dbManager) {
   char *COMMIT_HASH = fo_sysconfig(AGENT_NAME, "COMMIT_HASH");
