@@ -4,6 +4,10 @@
 
 using namespace fo;
 
+/**
+ * \brief Disconnect with scheduler returning an error code and exit
+ * \param exitval Error code
+ */
 void bail(int exitval) {
   fo_scheduler_disconnect(exitval);
   exit(exitval);
@@ -13,6 +17,12 @@ State getState(DbManager &dbManager) {
   int agentId = queryAgentId(dbManager);
   return State(agentId);
 }
+
+/**
+ * \brief Get agent id, exit if agent id is incorrect
+ * \param[in]  dbConn Database connection object
+ * \return ID of the agent
+ */
 
 int queryAgentId(DbManager &dbManager) {
   char *COMMIT_HASH = fo_sysconfig(AGENT_NAME, "COMMIT_HASH");
@@ -77,7 +87,7 @@ bool processUploadId(const State &state, int uploadId,
  * @param state what is state
  * @param pFileId what it it
  * @param databaseHandler what that
- * 
+ *
  * @return some value
  */
 
@@ -114,7 +124,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
 /**
  * First insert into license cache so that if the licencse if new it gets
  * inserted or if old then simply return primary_key from license_ref table
- * 
+ *
  * second we query license cahce for the primary key to store the short_name
  * and percentage and pk all in license_file table
  */
@@ -123,10 +133,14 @@ bool matchFileWithLicenses(const State &state, const fo::File &file,
                            ScancodeDatabaseHandler &databaseHandler) {
   string scancodeResult = scanFileWithScancode(state, file);
   vector<LicenseMatch> scancodeLicenseNames =
-      extractLicensesFromScancodeResult(scancodeResult,file.getFileName());
+      extractLicensesFromScancodeResult(scancodeResult, file.getFileName());
+  vector<Match> scancodeOtherNames =
+      extractOthersFromScancodeResult(scancodeResult, file.getFileName());
 
   return saveLicenseMatchesToDatabase(state, scancodeLicenseNames, file.getId(),
-                                      databaseHandler);
+                                      databaseHandler) &&
+         saveOtherMatchesToDatabase(state, scancodeOtherNames, file.getId(),
+                                    databaseHandler);
 }
 
 bool saveLicenseMatchesToDatabase(const State &state,
@@ -136,49 +150,78 @@ bool saveLicenseMatchesToDatabase(const State &state,
   for (vector<LicenseMatch>::const_iterator it = matches.begin();
        it != matches.end(); ++it) {
     const LicenseMatch &match = *it;
-    databaseHandler.insertOrCacheLicenseIdForName(match.getLicenseName(),match.getLicenseFullName(),match.getTextUrl());
+    databaseHandler.insertOrCacheLicenseIdForName(
+        match.getLicenseName(), match.getLicenseFullName(), match.getTextUrl());
   }
 
   if (!databaseHandler.begin())
     return false;
-
-  for (vector<LicenseMatch>::const_iterator it = matches.begin();
-       it != matches.end(); ++it) {
-    const LicenseMatch &match = *it;
-
-    int agentId = state.getAgentId();
-    string rfShortname = match.getLicenseName();
-    int percent = match.getPercentage();
-    unsigned start = match.getStartPosition();
-    unsigned length = match.getLength();
-
-    unsigned long licenseId =
-        databaseHandler.getCachedLicenseIdForName(rfShortname);
-
-    if (licenseId == 0) {
-      databaseHandler.rollback();
-      cout << "cannot get licenseId for shortname '" + rfShortname + "'"
-           << endl;
+  if (matches.size() == 0) {
+    cout << "No license found\n";
+    if (!databaseHandler.insertNoResultInDatabase(state.getAgentId(), pFileId))
       return false;
-    }
+  } 
+  else {
+    for (vector<LicenseMatch>::const_iterator it = matches.begin();
+         it != matches.end(); ++it) {
+      const LicenseMatch &match = *it;
 
-    long licenseFileId =
-        databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId, percent);
+      int agentId = state.getAgentId();
+      string rfShortname = match.getLicenseName();
+      int percent = match.getPercentage();
+      unsigned start = match.getStartPosition();
+      unsigned length = match.getLength();
 
-    if (licenseFileId > 0) {
-      bool highlightRes =
-          databaseHandler.saveHighlightInfo(licenseFileId, start, length);
-      if (!highlightRes) {
+      unsigned long licenseId =
+          databaseHandler.getCachedLicenseIdForName(rfShortname);
+
+      if (licenseId == 0) {
         databaseHandler.rollback();
-        cout << "failing save licensehighlight" << endl;
+        cout << "cannot get licenseId for shortname '" + rfShortname + "'"
+             << endl;
+        return false;
+      }
+
+      long licenseFileId = databaseHandler.saveLicenseMatch(agentId, pFileId,
+                                                            licenseId, percent);
+
+      if (licenseFileId > 0) {
+        bool highlightRes =
+            databaseHandler.saveHighlightInfo(licenseFileId, start, length);
+        if (!highlightRes) {
+          databaseHandler.rollback();
+          cout << "failing save licensehighlight" << endl;
+        }
+      } else {
+        databaseHandler.rollback();
+        cout << "failing save licenseMatch" << endl;
+        return false;
       }
     }
-    else {
+  }
+  return databaseHandler.commit();
+}
+
+bool saveOtherMatchesToDatabase(const State &state,
+                                const vector<Match> &matches,
+                                unsigned long pFileId,
+                                ScancodeDatabaseHandler &databaseHandler) {
+  
+
+  if (!databaseHandler.begin())
+    return false;
+
+  for (vector<Match>::const_iterator it = matches.begin();
+       it != matches.end(); ++it) {
+    const Match &match = *it;
+    DatabaseEntry entry(match,state.getAgentId(),pFileId);
+
+    if (!databaseHandler.insertInDatabase(entry))
+    {
       databaseHandler.rollback();
-      cout << "failing save licenseMatch" << endl;
+      cout << "failing save otherMatches" << endl;
       return false;
     }
   }
-
   return databaseHandler.commit();
 }

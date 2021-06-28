@@ -4,23 +4,24 @@
 #include <iostream>
 #include<fstream>
 
-unsigned getFilePointer(const string& filename,
-  size_t start_line, 
-  const string& match_text){
+unsigned getFilePointer(const string &filename, size_t start_line,
+                        const string &match_text) {
   ifstream checkfile(filename);
   string str;
-  if(checkfile.is_open()){
-    for (size_t i = 0; i <start_line-1; i++)
-    {
+  if (checkfile.is_open()) {
+    for (size_t i = 0; i < start_line - 1; i++) {
       getline(checkfile, str);
     }
-    int file_p = checkfile.tellg();
+    unsigned int file_p = checkfile.tellg();
+    cout << "File Pointer" << file_p << "\n";
     getline(checkfile, str);
-    cout<< "Checkline="<<str<<"\n";
-    unsigned int pos= str.find(match_text);
-    if(pos!=string::npos){
-
-      return file_p+pos;
+    cout << "Checkline=" << str << "\n";
+    cout << "match text" << match_text << "\n";
+    unsigned int pos = str.find(match_text); 
+    cout<<"pos"<<pos<<"\n";
+    if (pos != string::npos) {
+      cout << "file_p+pos" << file_p + pos << "\n";
+      return file_p + pos;
     }
   }
   return -1;
@@ -32,7 +33,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   char buffer[512];
 
   string command =
-      "scancode -l --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
+      "scancode -lc --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
@@ -50,6 +51,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   }
   unsigned int startjson = result.find("{");
   result=result.substr(startjson, string::npos);
+  cout<<result<<"\n";
 return result;
 }
 
@@ -72,6 +74,47 @@ vector<LicenseMatch> extractLicensesFromScancodeResult(const string& scancodeRes
           unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
           unsigned length = match_text.length();
           result.push_back(LicenseMatch(licensename,percentage,full_name,text_url,start_pointer,length));
+    }
+  } else {
+    cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()
+         << endl;
+    bail(-30);
+  }
+  return result;
+}
+
+vector<Match> extractOthersFromScancodeResult(const string& scancodeResult, const string& filename) {
+  Json::Reader scanner;
+  Json::Value scancodevalue;
+  cout<<scancodeResult<<"\n";
+  bool isSuccessful = scanner.parse(scancodeResult, scancodevalue);
+  cout<<"isSuccessful"<<isSuccessful<<"\n";
+  vector<Match> result;
+  if (isSuccessful) {
+    Json::Value copyarrays = scancodevalue["copyrights"];
+    for (unsigned int i = 0; i < copyarrays.size(); i++) {
+        Json::Value oneresult = copyarrays[i];
+          string type = "copyright";
+          string copyrightname = oneresult["value"].asString();
+          unsigned long start_line=oneresult["start"].asUInt();
+          string temp_text= copyrightname.substr(0,copyrightname.find("[\n\t]"));
+          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+          unsigned length = copyrightname.length();
+          result.push_back(Match(type,copyrightname,start_pointer,length));
+    }
+    Json::Value holderarrays = scancodevalue["holders"];
+    for (unsigned int i = 0; i < holderarrays.size(); i++) {
+      cout<<"i="<<i<<"\n";
+        Json::Value oneresult = holderarrays[i];
+          string type = "holder";
+          string holdername = oneresult["value"].asString();
+          cout<<"holdername"<<holdername<<"\n";
+          unsigned long start_line=oneresult["start"].asUInt();
+          string temp_text= holdername.substr(0,holdername.find("\n"));
+          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+          unsigned length = holdername.length();
+          cout<<"second check"<<i<< temp_text<<"\n";
+          result.push_back(Match(type,holdername,start_pointer,length));
     }
   } else {
     cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()

@@ -9,6 +9,7 @@
 #include <vector>
 #include "files.hpp"
 #include "licensematch.hpp"
+#include "match.hpp"
 #include "scancode_state.hpp"
 
 extern "C" {
@@ -25,5 +26,6 @@ bool processUploadId(const State& state, int uploadId, ScancodeDatabaseHandler& 
 bool matchPFileWithLicenses(const State& state, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
 bool matchFileWithLicenses(const State& state, const fo::File& file, ScancodeDatabaseHandler& databaseHandler);
 bool saveLicenseMatchesToDatabase(const State& state, const vector<LicenseMatch>& matches, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
+bool saveOtherMatchesToDatabase(const State& state, const vector<Match>& matches, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
 
 #endif

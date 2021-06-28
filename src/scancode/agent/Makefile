@@ -15,7 +15,7 @@ CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp $(shell pkg-config --libs jsoncpp)
 
 EXE = scancode
 
-OBJECTS = scancode_dbhandler.o licensematch.o scancode.o scancode_wrapper.o scancode_state.o scancode_utils.o
+OBJECTS = match.o scancode_dbhandler.o licensematch.o scancode.o scancode_wrapper.o scancode_state.o scancode_utils.o
 COVERAGE = $(OBJECTS:%.o=%_cov.o)
 
 all: $(CXXFOLIB) $(EXE)

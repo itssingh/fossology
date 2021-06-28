@@ -6,6 +6,33 @@
 using namespace fo;
 using namespace std;
 
+// TODO: Make an object for license match fields like ojo then pass them to functions.
+
+/**
+ * \brief Default constructor for DatabaseEntry
+ */
+DatabaseEntry::DatabaseEntry() :
+        agent_fk(0),
+        pfile_fk(0),
+        content(""),
+        hash(""),
+        type(""),
+        copy_startbyte(0),
+        copy_endbyte(0)
+{
+};
+
+DatabaseEntry::DatabaseEntry(Match match,unsigned long agentId, unsigned long pfileId) :
+        agent_fk(agentId),
+        pfile_fk(pfileId),
+        hash("")  
+{
+  content = match.getMatchName();
+  type = match.getType();
+  copy_startbyte = match.getStartPosition();
+  copy_endbyte = match.getStartPosition() + match.getLength();
+};
+
 /**
  * Default constructor for scancodeDatabaseHandler
  * @param dbManager DBManager to be used
@@ -38,6 +65,17 @@ vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadI
   return queryFileIdsVectorForUpload(uploadId,true);
 }
 
+// DONE insertNoResultInDatabase
+
+/**
+ * @brief Save no result to the database
+ * @param entry Entry containing the agent id and file id
+ * @return True of successful insertion, false otherwise
+ */
+bool ScancodeDatabaseHandler::insertNoResultInDatabase(int agentId, long pFileId )
+{
+  return saveLicenseMatch(agentId, pFileId, 320, NULL);
+}
 
 long ScancodeDatabaseHandler::saveLicenseMatch(
   int agentId, 
@@ -49,7 +87,21 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
       "saveLicenseMatch",
-      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk, rf_match_pct) VALUES ($1, $2, $3, $4) RETURNING fl_pk",
+      "WITH "
+          "selectExisting AS ("
+          "SELECT fl_pk FROM ONLY license_file"
+          " WHERE (agent_fk = $1 AND pfile_fk = $2 AND rf_fk = $3)"
+          "),"
+          "insertNew AS ("
+          "INSERT INTO license_file"
+          "(agent_fk, pfile_fk, rf_fk, rf_match_pct)"
+          " SELECT $1, $2, $3, $4"
+          " WHERE NOT EXISTS(SELECT * FROM license_file WHERE (agent_fk = $1 AND pfile_fk = $2 AND rf_fk = $3))"
+          " RETURNING fl_pk"
+          ") "
+          "SELECT fl_pk FROM insertNew "
+          "UNION "
+          "SELECT fl_pk FROM selectExisting",
       int, long, long, unsigned
     ),
     agentId,
@@ -57,6 +109,7 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
     licenseId,
     percentMatch
   );
+
   long licenseFilePK= -1;
   if(!result.isFailed()){
     
@@ -68,6 +121,12 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
   return licenseFilePK;  
 }
 
+// DONE sarita: remove glitch in UI for license highlight 
+// There are two gliches: more than one href link to highlight
+// solved: inserted only unique entries in license_file and highlight table.
+
+// TODO use 'S' instead of 'L' for scancode highlight in highlight.type
+// ASK: highlight isn't working right now with a new type, have to figure out how?
 
 bool ScancodeDatabaseHandler::saveHighlightInfo(
   long licenseFileId,
@@ -79,7 +138,10 @@ bool ScancodeDatabaseHandler::saveHighlightInfo(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
       "saveHighlightInfo",
-      "INSERT INTO highlight(fl_fk, type, start, len) VALUES ($1, 'L', $2, $3 )",
+          "INSERT INTO highlight"
+          "(fl_fk, type, start, len)"
+          " SELECT $1, 'L', $2, $3 "
+          " WHERE NOT EXISTS(SELECT * FROM highlight WHERE (fl_fk = $1 AND start = $2 AND len = $3))",
       long, unsigned, unsigned
     ),
     licenseFileId,
@@ -133,6 +195,9 @@ bool hasEnding(string const &firstString, string const &ending)
     return false;
   }
 }
+
+//  WIP insert license text to database
+// either create a scancode plugin or use local data 
 
 // insert license if not present in license_ref and return its primary key
 unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfShortName, string rfFullname, string rfTexturl)
@@ -218,7 +283,6 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
     return result;
   }
 
-// TODO:Add text_url and license_name in license_ref table.
 
   unsigned count = 0;
   while ((!success) && count++<3)
@@ -271,3 +335,31 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
 
   return result;
 }
+
+
+bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
+{
+  std::string tableName = "author";
+
+  if("copyright" == entry.type ){
+    tableName = "copyright";
+  }
+
+  return dbManager.execPrepared(
+    fo_dbManager_PrepareStamement(
+      dbManager.getStruct_dbManager(),
+      ("insertInDatabaseFor" + tableName).c_str(),
+      ("INSERT INTO "+ tableName +
+      "(agent_fk, pfile_fk, content, hash, type, copy_startbyte, copy_endbyte)" +
+        " VALUES($1,$2,$3,md5($3),$4,$5,$6)").c_str(),
+        long, long, char*, char*, int, int
+    ),
+    entry.agent_fk, entry.pfile_fk,
+    entry.content.c_str(),
+    entry.type.c_str(),
+    entry.copy_startbyte, entry.copy_endbyte
+  );
+}
+
+// TODO: Add new copyright and author tables for scancode
+

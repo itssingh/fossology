@@ -10,6 +10,7 @@
 #include<unordered_map>
 #include "files.hpp"
 #include "licensematch.hpp" 
+#include "match.hpp"
 #include "scancode_state.hpp"
 
 #include <jsoncpp/json/json.h>
@@ -19,5 +20,5 @@ using namespace std;
 string scanFileWithScancode(const State& state, const fo::File& file);
 string scanFileWithScancode(string filename);
 vector<LicenseMatch> extractLicensesFromScancodeResult( const string& scancodeResult, const string& filename);
-
+vector<Match> extractOthersFromScancodeResult( const string& scancodeResult, const string& filename);
 #endif 
