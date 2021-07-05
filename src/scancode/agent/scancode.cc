@@ -5,12 +5,23 @@
 using namespace fo;
 using namespace std;
 
+#define return_sched(retval) \
+  do {\
+    fo_scheduler_disconnect((retval));\
+    return (retval);\
+  } while(0)
+
 int main(int argc, char** argv)
 {
   DbManager dbManager(&argc, argv);
   ScancodeDatabaseHandler databaseHandler(dbManager);
   
   State state = getState(dbManager);
+    if (!databaseHandler.createTables())
+    {
+      std::cout << "FATAL: initialization failed" << std::endl;
+      return_sched(9);
+    }
 
   while (fo_scheduler_next() != NULL)
   {
@@ -35,3 +46,5 @@ int main(int argc, char** argv)
   fo_scheduler_disconnect(0);
   return 0;
 }
+
+// TODO add CLI in the second phase.

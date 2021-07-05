@@ -6,7 +6,7 @@
 using namespace fo;
 using namespace std;
 
-// TODO: Make an object for license match fields like ojo then pass them to functions.
+// HACK: Make an object for license match fields then pass them to functions.
 
 /**
  * \brief Default constructor for DatabaseEntry
@@ -32,6 +32,24 @@ DatabaseEntry::DatabaseEntry(Match match,unsigned long agentId, unsigned long pf
   copy_startbyte = match.getStartPosition();
   copy_endbyte = match.getStartPosition() + match.getLength();
 };
+
+
+std::string ScancodeDatabaseHandler::getColumnCreationString(const ScancodeDatabaseHandler::ColumnDef in[], size_t size) const
+{
+  std::string result;
+  for (size_t i = 0; i < size; ++i)
+  {
+    if (i != 0)
+      result += ", ";
+    result += in[i].name;
+    result += " ";
+    result += in[i].type;
+    result += " ";
+    result += in[i].creationFlags;
+  }
+  return result;
+}
+
 
 /**
  * Default constructor for scancodeDatabaseHandler
@@ -67,6 +85,8 @@ vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadI
 
 // DONE insertNoResultInDatabase
 
+// ASK: scancode should display no license or just insert null?
+
 /**
  * @brief Save no result to the database
  * @param entry Entry containing the agent id and file id
@@ -74,7 +94,7 @@ vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadI
  */
 bool ScancodeDatabaseHandler::insertNoResultInDatabase(int agentId, long pFileId )
 {
-  return saveLicenseMatch(agentId, pFileId, 320, NULL);
+  return saveLicenseMatch(agentId, pFileId, 320, NULL); //320 is not constant
 }
 
 long ScancodeDatabaseHandler::saveLicenseMatch(
@@ -121,12 +141,13 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
   return licenseFilePK;  
 }
 
-// DONE sarita: remove glitch in UI for license highlight 
-// There are two gliches: more than one href link to highlight
-// solved: inserted only unique entries in license_file and highlight table.
+// DONE: remove glitch in UI for license highlight 
+// BUG: more than one href link to highlight
+// HACK: inserted only unique entries in license_file and highlight table.
 
 // TODO use 'S' instead of 'L' for scancode highlight in highlight.type
-// ASK: highlight isn't working right now with a new type, have to figure out how?
+// HACK: add to match highlight instead of relevent text, because scancode matches text
+// ASK which is better?
 
 bool ScancodeDatabaseHandler::saveHighlightInfo(
   long licenseFileId,
@@ -140,7 +161,7 @@ bool ScancodeDatabaseHandler::saveHighlightInfo(
       "saveHighlightInfo",
           "INSERT INTO highlight"
           "(fl_fk, type, start, len)"
-          " SELECT $1, 'L', $2, $3 "
+          " SELECT $1, 'S', $2, $3 "
           " WHERE NOT EXISTS(SELECT * FROM highlight WHERE (fl_fk = $1 AND start = $2 AND len = $3))",
       long, unsigned, unsigned
     ),
@@ -196,7 +217,7 @@ bool hasEnding(string const &firstString, string const &ending)
   }
 }
 
-//  WIP insert license text to database
+//  TODO insert license text to database
 // either create a scancode plugin or use local data 
 
 // insert license if not present in license_ref and return its primary key
@@ -339,19 +360,21 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
 
 bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
 {
-  std::string tableName = "author";
+  std::string tableName = "scancode_author";
 
   if("copyright" == entry.type ){
-    tableName = "copyright";
+    tableName = "scancode_copyright";
   }
 
   return dbManager.execPrepared(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
-      ("insertInDatabaseFor" + tableName).c_str(),
+      ("insertInDatabaseFor " + tableName).c_str(),
       ("INSERT INTO "+ tableName +
       "(agent_fk, pfile_fk, content, hash, type, copy_startbyte, copy_endbyte)" +
-        " VALUES($1,$2,$3,md5($3),$4,$5,$6)").c_str(),
+        " SELECT $1, $2, $3, md5($3), $4, $5, $6 "
+        " WHERE NOT EXISTS(SELECT * FROM " + tableName +
+        " WHERE (hash = md5($3)))").c_str(),
         long, long, char*, char*, int, int
     ),
     entry.agent_fk, entry.pfile_fk,
@@ -360,6 +383,169 @@ bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
     entry.copy_startbyte, entry.copy_endbyte
   );
 }
+// WIP Add new copyright and author tables for scancode
 
-// TODO: Add new copyright and author tables for scancode
+/**
+ * \brief Create tables required by agent
+ *
+ * Calls createTableAgentFindings() and createTableClearing()
+ * to create the tables required by the agent to work.
+ *
+ * The function tries to create table in maximum of MAX_TABLE_CREATION_RETRIES
+ * attempts.
+ * \return True if success, false otherwise
+ */
+bool ScancodeDatabaseHandler::createTables() const
+{
+  int failedCounter = 0;
+  bool tablesChecked = false;
+
+  dbManager.ignoreWarnings(true);
+  while (!tablesChecked && failedCounter < MAX_TABLE_CREATION_RETRIES)
+  {
+    dbManager.begin();
+    tablesChecked = createTableAgentFindings("scancode_copyright") && createTableAgentFindings("scancode_author");
+
+
+    if (tablesChecked)
+      dbManager.commit();
+    else
+    {
+      dbManager.rollback();
+      ++failedCounter;
+      if (failedCounter < MAX_TABLE_CREATION_RETRIES)
+        std::cout << "WARNING: table creation failed: trying again"
+          " (" << failedCounter << "/" << MAX_TABLE_CREATION_RETRIES << ")"
+          << std::endl;
+    }
+  }
+  if (tablesChecked && (failedCounter > 0))
+    std::cout << "NOTICE: table creation succeded on try "
+      << failedCounter << "/" << MAX_TABLE_CREATION_RETRIES
+      << std::endl;
+
+  dbManager.ignoreWarnings(false);
+  return tablesChecked;
+}
+
+/**
+ * \brief Columns required by agent in database
+ * \todo Removed constrain: "CHECK (type in ('statement', 'email', 'url'))"}
+ */
+const ScancodeDatabaseHandler::ColumnDef
+    ScancodeDatabaseHandler::columns_copyright[] = {
+#define CSEQUENCE_NAME "scancode_copyright_pk_seq"
+#define CCOLUMN_NAME_PK "scancode_copyright_pk"
+        {CCOLUMN_NAME_PK, "bigint",
+         "PRIMARY KEY DEFAULT nextval('" CSEQUENCE_NAME "'::regclass)"},
+        {"agent_fk", "bigint", "NOT NULL"},
+        {"pfile_fk", "bigint", "NOT NULL"},
+        {"content", "text", ""},
+        {"hash", "text", ""},
+        {"type", "text", ""},
+        {"copy_startbyte", "integer", ""},
+        {"copy_endbyte", "integer", ""},
+        {"is_enabled", "boolean", "NOT NULL DEFAULT TRUE"},
+};
+
+const ScancodeDatabaseHandler::ColumnDef
+    ScancodeDatabaseHandler::columns_author[] = {
+#define ASEQUENCE_NAME "scancode_author_pk_seq"
+#define ACOLUMN_NAME_PK "scancode_author_pk"
+        {ACOLUMN_NAME_PK, "bigint",
+         "PRIMARY KEY DEFAULT nextval('" ASEQUENCE_NAME "'::regclass)"},
+        {"agent_fk", "bigint", "NOT NULL"},
+        {"pfile_fk", "bigint", "NOT NULL"},
+        {"content", "text", ""},
+        {"hash", "text", ""},
+        {"type", "text", ""},
+        {"copy_startbyte", "integer", ""},
+        {"copy_endbyte", "integer", ""},
+        {"is_enabled", "boolean", "NOT NULL DEFAULT TRUE"},
+};
+
+/**
+ * \brief Create table to store agent find data
+ * \return True on success, false otherwise
+ * \see CopyrightDatabaseHandler::columns
+ */
+bool ScancodeDatabaseHandler::createTableAgentFindings( string tableName) const
+{
+  const char *tablename;
+  const char *sequencename;
+  if (tableName == "scancode_copyright") {
+    tablename = "scancode_copyright";
+    sequencename = "scancode_copyright_pk_seq";
+  } else if (tableName == "scancode_author") {
+    tablename = "scancode_author";
+    sequencename = "scancode_author_pk_seq";
+  }
+  cout << "CHECK here " << tablename << " " << sequencename<<"\n";
+  if (!dbManager.sequenceExists(sequencename)) {
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE SEQUENCE %s"
+      " START WITH 1"
+        " INCREMENT BY 1"
+        " NO MAXVALUE"
+        " NO MINVALUE"
+        " CACHE 1",sequencename));
+  }
+
+  if (!dbManager.tableExists(tablename))
+  {
+    if (tableName == "scancode_copyright") {
+    size_t ncolumns = (sizeof(ScancodeDatabaseHandler::columns_copyright) / sizeof(ScancodeDatabaseHandler::ColumnDef));
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE table %s(%s)", tablename,
+      getColumnCreationString(ScancodeDatabaseHandler::columns_copyright, ncolumns).c_str()
+    )
+    );
+  } else if (tableName == "scancode_author") {
+    size_t ncolumns = (sizeof(ScancodeDatabaseHandler::columns_author) / sizeof(ScancodeDatabaseHandler::ColumnDef));
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE table %s(%s)", tablename,
+      getColumnCreationString(ScancodeDatabaseHandler::columns_author, ncolumns).c_str()
+    )
+    );
+  }
+    
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_agent_fk_index"
+        " ON %s"
+        " USING BTREE (agent_fk)",
+      tablename, tablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_hash_index"
+        " ON %s"
+        " USING BTREE (hash)",
+      tablename, tablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_pfile_fk_index"
+        " ON %s"
+        " USING BTREE (pfile_fk)",
+      tablename, tablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE ONLY %s"
+        " ADD CONSTRAINT agent_fk"
+        " FOREIGN KEY (agent_fk)"
+        " REFERENCES agent(agent_pk) ON DELETE CASCADE",
+      tablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE ONLY %s"
+        " ADD CONSTRAINT pfile_fk"
+        " FOREIGN KEY (pfile_fk)"
+        " REFERENCES pfile(pfile_pk) ON DELETE CASCADE",
+      tablename
+    ));
+  }
+  return true;
+}
+
+// TODO insertNoResult function for copyright and author
+
 

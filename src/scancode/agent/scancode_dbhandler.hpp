@@ -16,6 +16,14 @@ extern "C" {
 #include "libfossology.h"
 }
 
+#define RETURN_IF_FALSE(query) \
+  do {\
+    if (!(query)) {\
+      return false;\
+    }\
+  } while(0)
+
+
 #define MAX_TABLE_CREATION_RETRIES 5
 
 /**
@@ -35,11 +43,10 @@ public:
    * \brief Type of statement found.
    *
    * Can be
-   *   - statement for Copyright
+   *   - copyright for Copyright
    *   - author for Author
    *   - url for URL
    *   - email for email
-   *   - ecc for ECC
    */
   std::string type;
   unsigned copy_startbyte;               /**< Statement start offset from start of pfile content */
@@ -60,6 +67,7 @@ public:
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
   bool insertInDatabase(DatabaseEntry& entry) const;
   std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
+  bool createTables() const;
 private:
   unsigned long selectOrInsertLicenseIdForName(std::string rfShortname, std::string rfFullname, std::string rfTexturl);
   std::unordered_map<std::string,long> licenseRefCache;
@@ -68,18 +76,18 @@ private:
    * \brief Holds the column related data for table creation
    * \see CopyrightDatabaseHandler::columns
    */
-  typedef struct
+  struct ColumnDef
   {
     const char* name;               /**< Name of the table column */
     const char* type;               /**< Data type of the table column */
     const char* creationFlags;      /**< Special flags of the table column */
-  } ColumnDef;
+  };
 
-  static const ColumnDef columns[];
+  static const ColumnDef columns_author[];
+  static const ColumnDef columns_copyright[];
   static const ColumnDef columnsDecision[];
 
-  bool createTableAgentFindings() const;
-  std::string getColumnListString(const ColumnDef in[], size_t size) const;
+  bool createTableAgentFindings(string tablename) const;
   std::string getColumnCreationString(const ColumnDef in[], size_t size) const;
 };
 
