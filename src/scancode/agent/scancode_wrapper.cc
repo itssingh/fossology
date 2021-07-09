@@ -32,6 +32,9 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   FILE *in;
   char buffer[512];
 
+// WIP a pr in scancode-toolkit project to add email, urls in the custom template
+// TODO use default json scancode output insted of custom output for now to get email, urls 
+
   string command =
       "scancode -lc --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
   string result = "";
@@ -94,7 +97,7 @@ vector<Match> extractOthersFromScancodeResult(const string& scancodeResult, cons
     Json::Value copyarrays = scancodevalue["copyrights"];
     for (unsigned int i = 0; i < copyarrays.size(); i++) {
         Json::Value oneresult = copyarrays[i];
-          string type = "copyright";
+          string type = "scancode_statement";
           string copyrightname = oneresult["value"].asString();
           unsigned long start_line=oneresult["start"].asUInt();
           string temp_text= copyrightname.substr(0,copyrightname.find("[\n\t]"));
@@ -106,7 +109,7 @@ vector<Match> extractOthersFromScancodeResult(const string& scancodeResult, cons
     for (unsigned int i = 0; i < holderarrays.size(); i++) {
       cout<<"i="<<i<<"\n";
         Json::Value oneresult = holderarrays[i];
-          string type = "holder";
+          string type = "scancode_author";
           string holdername = oneresult["value"].asString();
           cout<<"holdername"<<holdername<<"\n";
           unsigned long start_line=oneresult["start"].asUInt();

@@ -74,7 +74,7 @@
   </script>
 
   {% include "copyrighthist_scripts.html.twig" %}
-  {% if agentName == "copyright" %}
+  {% if agentName == "copyright" or agentName == "scancode" %}
     <script language="javascript">
     {% set table=statement %}
     {% include "histTable.js.twig" with table %}

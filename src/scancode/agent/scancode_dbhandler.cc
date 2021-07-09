@@ -141,13 +141,6 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
   return licenseFilePK;  
 }
 
-// DONE: remove glitch in UI for license highlight 
-// BUG: more than one href link to highlight
-// HACK: inserted only unique entries in license_file and highlight table.
-
-// TODO use 'S' instead of 'L' for scancode highlight in highlight.type
-// HACK: add to match highlight instead of relevent text, because scancode matches text
-// ASK which is better?
 
 bool ScancodeDatabaseHandler::saveHighlightInfo(
   long licenseFileId,
@@ -161,7 +154,7 @@ bool ScancodeDatabaseHandler::saveHighlightInfo(
       "saveHighlightInfo",
           "INSERT INTO highlight"
           "(fl_fk, type, start, len)"
-          " SELECT $1, 'S', $2, $3 "
+          " SELECT $1, 'L', $2, $3 "
           " WHERE NOT EXISTS(SELECT * FROM highlight WHERE (fl_fk = $1 AND start = $2 AND len = $3))",
       long, unsigned, unsigned
     ),
@@ -362,7 +355,7 @@ bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
 {
   std::string tableName = "scancode_author";
 
-  if("copyright" == entry.type ){
+  if("scancode_statement" == entry.type ){
     tableName = "scancode_copyright";
   }
 

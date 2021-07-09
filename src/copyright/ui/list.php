@@ -114,8 +114,16 @@ class copyright_list extends FO_Plugin
         $upload_pk, $lft, $rgt, $hash
       ];
     } else {
-      $eventTable = $tableName . "_event";
-      $eventFk = $tableName . "_fk";
+      $tableNameFK = null;
+      if ($tableName === 'scancode_copyright') {
+        $tableNameFK = 'copyright';
+      } else if ($tableName === 'scancode_author'){
+        $tableNameFK = 'author';
+      }else{
+        $tableNameFK = $tableName;
+      }
+      $eventTable = $tableNameFK . "_event";
+      $eventFk = $tableNameFK . "_fk";
       $tablePk = $tableName . "_pk";
       /* get all the copyright records for this uploadtree.  */
       $sql = "SELECT
@@ -326,6 +334,9 @@ type, uploadtree_pk, ufile_name, cp.pfile_fk AS PF
         case "statement":
           $TypeStr = "$text3";
           break;
+        case "scancode_statement":
+          $TypeStr = "$text3";
+          break;
         case "email":
           $TypeStr = "$text4";
           break;
@@ -454,6 +465,11 @@ type, uploadtree_pk, ufile_name, cp.pfile_fk AS PF
         break;
       case "statement" :
         $tableName = "copyright";
+        $modBack = "copyright-hist";
+        $viewName = "copyright-view";
+        break;
+      case "scancode" :
+        $tableName = "scancode_copyright";
         $modBack = "copyright-hist";
         $viewName = "copyright-view";
         break;

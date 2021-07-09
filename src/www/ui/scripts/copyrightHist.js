@@ -18,6 +18,7 @@
 
 $(document).ready(function () {
   tableCopyright = createTablestatement();
+  tableScancode = createTablescancode_statement();
   tableEmail = createTableemail();
   tableUrl = createTableurl();
 });

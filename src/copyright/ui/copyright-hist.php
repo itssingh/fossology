@@ -46,7 +46,8 @@ class CopyrightHistogram extends HistogramBase {
   protected function getTableContent($upload_pk, $uploadtreeId, $filter, $agentId)
   {
     $typeDescriptionPairs = array(
-      'statement' => _("Agent Findings"),
+      'statement' => _("FOSSology Findings"),
+      'scancode_statement' => _("ScanCode Findings"),
       'copyFindings' => _("User Findings")
     );
     $tableVars = array();
@@ -70,12 +71,13 @@ class CopyrightHistogram extends HistogramBase {
    */
   protected function fillTables($upload_pk, $Uploadtree_pk, $filter, $agentId, $VF)
   {
-    list ($vCopyright, $vTextFindings, $tableVars) = $this->getTableContent(
+    list ($vCopyright, $vScancode, $vTextFindings, $tableVars) = $this->getTableContent(
       $upload_pk, $Uploadtree_pk, $filter, $agentId);
 
     $out = $this->renderString('copyrighthist_tables.html.twig',
       array(
         'contCopyright' => $vCopyright,
+        'contScancodeCopyright' => $vScancode,
         'contTextFindings' => $vTextFindings,
         'fileList' => $VF
       ));
@@ -119,6 +121,7 @@ class CopyrightHistogram extends HistogramBase {
 
     $(document).ready(function() {
       tableCopyright =  createTablestatement();
+      tableScancode =  createTablescancode_statement();
       tableFindings = createPlainTablecopyFindings();
       $('#testReplacementstatement').click(function() {
         testReplacement(tableCopyright, 'statement');
