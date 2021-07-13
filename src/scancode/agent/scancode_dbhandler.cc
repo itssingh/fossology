@@ -1,15 +1,35 @@
+/*****************************************************************************
+ * SPDX-License-Identifier: GPL-2.0
+ * SPDX-FileCopyrightText: 2021 Sarita Singh <saritasingh.0425@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *****************************************************************************/
+
 #include "scancode_dbhandler.hpp"
 #include "libfossUtils.hpp"
 
 #include <iostream>
 
+/**
+ * @brief Utility functions for file handling
+ */
 using namespace fo;
 using namespace std;
 
-// HACK: Make an object for license match fields then pass them to functions.
 
 /**
- * \brief Default constructor for DatabaseEntry
+ * @brief Default constructor for DatabaseEntry
  */
 DatabaseEntry::DatabaseEntry() :
         agent_fk(0),
@@ -22,6 +42,12 @@ DatabaseEntry::DatabaseEntry() :
 {
 };
 
+/**
+ * @brief constructor for DatabaseEntry
+ * @param match object of type Match class
+ * @param agentId primary key of ScanCode agent
+ * @param pfileId primary key of pfile
+ */
 DatabaseEntry::DatabaseEntry(Match match,unsigned long agentId, unsigned long pfileId) :
         agent_fk(agentId),
         pfile_fk(pfileId),
@@ -33,7 +59,12 @@ DatabaseEntry::DatabaseEntry(Match match,unsigned long agentId, unsigned long pf
   copy_endbyte = match.getStartPosition() + match.getLength();
 };
 
-
+/**
+ * @brief  get string of parameters for a column for table creation  
+ * @param in[]  input array of struct ColumnDef 
+ * @param size  size of in[]
+ * @return string of parameters
+ */
 std::string ScancodeDatabaseHandler::getColumnCreationString(const ScancodeDatabaseHandler::ColumnDef in[], size_t size) const
 {
   std::string result;
@@ -52,8 +83,8 @@ std::string ScancodeDatabaseHandler::getColumnCreationString(const ScancodeDatab
 
 
 /**
- * Default constructor for scancodeDatabaseHandler
- * @param dbManager DBManager to be used
+ * @brief Default constructor for ScanCode Database Handler class
+ * @param dbManager   DBManager to be used
  */
 ScancodeDatabaseHandler::ScancodeDatabaseHandler(DbManager dbManager) :
   fo::AgentDatabaseHandler(dbManager)
@@ -61,10 +92,9 @@ ScancodeDatabaseHandler::ScancodeDatabaseHandler(DbManager dbManager) :
 }
 
 /**
- * Spawn a new DbManager object.
- *
- * Used to create new objects for threads.
- * @return DbManager object for threads.
+ * @brief Instantiate a new object spawn for ScanCode Database handler
+ * Used to create new objects for threads
+ * @return DbManager object for threads
  */
 
 ScancodeDatabaseHandler ScancodeDatabaseHandler::spawn() const
@@ -74,29 +104,43 @@ ScancodeDatabaseHandler ScancodeDatabaseHandler::spawn() const
 }
 
 /**
- * Get a vector of all file id for a given upload id.
- * @param uploadId Upload ID to be queried
- * @return uploadId
+ * @brief Function to get pfile ID for uploads
+ * @param uploadId  Upload ID of uploads
+ * @return Vector of pfile IDs
  */
 vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadId)
 {
   return queryFileIdsVectorForUpload(uploadId,true);
 }
 
-// DONE insertNoResultInDatabase
-
-// ASK: scancode should display no license or just insert null?
-
 /**
- * @brief Save no result to the database
- * @param entry Entry containing the agent id and file id
- * @return True of successful insertion, false otherwise
+ * @brief Insert null value of license for uploads having no licenses
+ * @param agentId   agent_pk in agent database table
+ * @param pFileId   pfile_pk in pfile dataabse table
+ * @return True on successful insertion, false otherwise
  */
 bool ScancodeDatabaseHandler::insertNoResultInDatabase(int agentId, long pFileId )
 {
-  return saveLicenseMatch(agentId, pFileId, 320, NULL); //320 is not constant
+  return dbManager.execPrepared(
+    fo_dbManager_PrepareStamement(dbManager.getStruct_dbManager(),
+      "scancodeInsertNoLicense",
+      "INSERT INTO license_file"
+      "(agent_fk, pfile_fk)"
+      " VALUES($1,$2)",
+      int, long
+    ),
+    agentId, pFileId);
 }
 
+/**
+ * @brief save license match with license_ref table in license_file table 
+ * Insert license if already not present in license_file table
+ * @param agantId         agent pk in agent database table
+ * @param pFileId         pfile pk in pfile dataabse table
+ * @param licenseId       reference pk in license_ref table for matched or inserted license 
+ * @param percentMatch    Score got for license from scancode agent 
+ * @return  license_file  pk on success, -1 on failure to save match
+ */
 long ScancodeDatabaseHandler::saveLicenseMatch(
   int agentId, 
   long pFileId, 
@@ -138,16 +182,21 @@ long ScancodeDatabaseHandler::saveLicenseMatch(
 
     licenseFilePK = res.at(0);
   }
-  return licenseFilePK;  
+  return licenseFilePK;
 }
 
-
+/**
+ * @brief save highlight information in the highlight table
+ * @param licenseFileId   license_file pk 
+ * @param start           start byte of highlight_text
+ * @param length          total no of bytes from start byte
+ * @return  true on success to save highlight, false on failure
+ */
 bool ScancodeDatabaseHandler::saveHighlightInfo(
   long licenseFileId,
   unsigned start,
   unsigned length)
 {
-  cout<<"saving highlight info"<<endl;
   return dbManager.execPrepared(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
@@ -163,7 +212,12 @@ bool ScancodeDatabaseHandler::saveHighlightInfo(
     length
   );}
 
-
+/**
+ * @brief calling function for selectOrInsertLicenseIdForName
+ * @param rfShortName   spdx license key for the license
+ * @param rfFullName    full name of the license
+ * @param rfTextUrl reference url for license text
+ */
 void ScancodeDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortName, string const& rfFullName, string const& rfTextUrl)
 {
   if (getCachedLicenseIdForName(rfShortName)==0)
@@ -177,6 +231,11 @@ void ScancodeDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShor
   }
 }
 
+/**
+ * @brief for given short name search license 
+ * @param rfShortName spdx license key for the license
+ * @return license id if found in license_ref table, 0 otherwise
+ */
 unsigned long ScancodeDatabaseHandler::getCachedLicenseIdForName(string const& rfShortName) const
 {
   std::unordered_map<string,long>::const_iterator findIterator = licenseRefCache.find(rfShortName);
@@ -192,8 +251,8 @@ unsigned long ScancodeDatabaseHandler::getCachedLicenseIdForName(string const& r
 
 /**
  * Helper function to check if a string ends with other string.
- * @param firstString The string to be checked
- * @param ending      The ending string
+ * @param firstString   The string to be checked
+ * @param ending        The ending string
  * @return True if first string has the ending string at end, false otherwise.
  */
 bool hasEnding(string const &firstString, string const &ending)
@@ -211,9 +270,15 @@ bool hasEnding(string const &firstString, string const &ending)
 }
 
 //  TODO insert license text to database
-// either create a scancode plugin or use local data 
+// create a scancode plugin
 
-// insert license if not present in license_ref and return its primary key
+/**
+ * @brief insert license if not present in license_ref table and return rf_pk
+ * @param rfShortName  spdx license key for the license
+ * @param rfFullName   full name of the license
+ * @param rfTextUrl   reference url for license text
+ * @return licenseId on success, 0 on failure
+ */
 unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfShortName, string rfFullname, string rfTexturl)
 {
   bool success = false;
@@ -233,12 +298,10 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
       " OR LOWER(rf_shortname) = LOWER($2);",
       char*, char*);
 
-  /* First check similar matches */
-  /* Check if the name ends with +, -or-later, -only */
   if (hasEnding(rfShortName, "+") || hasEnding(rfShortName, "-or-later"))
   {
     string tempShortName(rfShortName);
-    /* Convert shortname to lower-case */
+    /* Convert shortname to lower-case to make it case-insensitive*/
     std::transform(tempShortName.begin(), tempShortName.end(), tempShortName.begin(),
       ::tolower);
     string plus("+");
@@ -350,7 +413,11 @@ unsigned long ScancodeDatabaseHandler::selectOrInsertLicenseIdForName(string rfS
   return result;
 }
 
-
+/**
+ * @brief insert copyright/author in scancode_copyright/scancode_author table 
+ * @param entry object of DatabaseEntry class
+ * @return  true on success, false otherwise
+ */
 bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
 {
   std::string tableName = "scancode_author";
@@ -367,7 +434,7 @@ bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
       "(agent_fk, pfile_fk, content, hash, type, copy_startbyte, copy_endbyte)" +
         " SELECT $1, $2, $3, md5($3), $4, $5, $6 "
         " WHERE NOT EXISTS(SELECT * FROM " + tableName +
-        " WHERE (hash = md5($3)))").c_str(),
+        " WHERE (agent_fk= $1 AND pfile_fk = $2 AND hash = md5($3)))").c_str(),
         long, long, char*, char*, int, int
     ),
     entry.agent_fk, entry.pfile_fk,
@@ -376,17 +443,10 @@ bool ScancodeDatabaseHandler::insertInDatabase(DatabaseEntry& entry) const
     entry.copy_startbyte, entry.copy_endbyte
   );
 }
-// WIP Add new copyright and author tables for scancode
 
 /**
- * \brief Create tables required by agent
- *
- * Calls createTableAgentFindings() and createTableClearing()
- * to create the tables required by the agent to work.
- *
- * The function tries to create table in maximum of MAX_TABLE_CREATION_RETRIES
- * attempts.
- * \return True if success, false otherwise
+ * @brief create tables to save copyright and author informations
+ * @return  true on sucessful creation, false otherwise
  */
 bool ScancodeDatabaseHandler::createTables() const
 {
@@ -397,7 +457,7 @@ bool ScancodeDatabaseHandler::createTables() const
   while (!tablesChecked && failedCounter < MAX_TABLE_CREATION_RETRIES)
   {
     dbManager.begin();
-    tablesChecked = createTableAgentFindings("scancode_copyright") && createTableAgentFindings("scancode_author");
+    tablesChecked = createTableAgentFindings("scancode_copyright") && createTableAgentFindings("scancode_author")&& createTableAgentEvents("scancode_copyright_event") && createTableAgentEvents("scancode_author_event");
 
 
     if (tablesChecked)
@@ -421,10 +481,7 @@ bool ScancodeDatabaseHandler::createTables() const
   return tablesChecked;
 }
 
-/**
- * \brief Columns required by agent in database
- * \todo Removed constrain: "CHECK (type in ('statement', 'email', 'url'))"}
- */
+
 const ScancodeDatabaseHandler::ColumnDef
     ScancodeDatabaseHandler::columns_copyright[] = {
 #define CSEQUENCE_NAME "scancode_copyright_pk_seq"
@@ -458,9 +515,9 @@ const ScancodeDatabaseHandler::ColumnDef
 };
 
 /**
- * \brief Create table to store agent find data
- * \return True on success, false otherwise
- * \see CopyrightDatabaseHandler::columns
+ * @brief create table to store agent findings
+ * @param table name
+ * @return  true on successful creation, false otherwise
  */
 bool ScancodeDatabaseHandler::createTableAgentFindings( string tableName) const
 {
@@ -538,7 +595,138 @@ bool ScancodeDatabaseHandler::createTableAgentFindings( string tableName) const
   }
   return true;
 }
+ 
+
+const ScancodeDatabaseHandler::ColumnDef
+    ScancodeDatabaseHandler::columns_copyright_event[] = {
+#define CESEQUENCE_NAME "scancode_copyright_event_pk_seq"
+#define CECOLUMN_NAME_PK "scancode_copyright_event_pk"
+        {CECOLUMN_NAME_PK, "bigint",
+         "PRIMARY KEY DEFAULT nextval('" CESEQUENCE_NAME "'::regclass)"},
+        {"upload_fk", "bigint", "NOT NULL"},
+        {"uploadtree_fk", "bigint", "NOT NULL"},
+        {"scancode_copyright_fk", "bigint", "NOT NULL"},
+        {"content", "text", ""},
+        {"hash", "text", ""},
+        {"is_enabled", "boolean", "NOT NULL DEFAULT FALSE"},
+        {"scope", "int4", "NOT NULL"},
+};
+
+const ScancodeDatabaseHandler::ColumnDef
+    ScancodeDatabaseHandler::columns_author_event[] = {
+#define AESEQUENCE_NAME "scancode_author_event_pk_seq"
+#define AECOLUMN_NAME_PK "scancode_author_event_pk"
+        {AECOLUMN_NAME_PK, "bigint",
+         "PRIMARY KEY DEFAULT nextval('" AESEQUENCE_NAME "'::regclass)"},
+        {"upload_fk", "bigint", "NOT NULL"},
+        {"uploadtree_fk", "bigint", "NOT NULL"},
+        {"scancode_author_fk", "bigint", "NOT NULL"},
+        {"content", "text", ""},
+        {"hash", "text", ""},
+        {"is_enabled", "boolean", "NOT NULL DEFAULT FALSE"},
+        {"scope", "int4", "NOT NULL"},
+};
+
+/**
+ * @brief create table to store agent events
+ * @param table name
+ * @return  true on successful creation, false otherwise
+ */
+bool ScancodeDatabaseHandler::createTableAgentEvents( string tableName) const
+{
+  const char *tablename;
+  const char *etablename;
+  const char *esequencename;
+  if (tableName == "scancode_copyright_event") {
+    etablename = "scancode_copyright_event";
+    esequencename = "scancode_copyright_event_pk_seq";
+    tablename = "scancode_copyright";
+  } else if (tableName == "scancode_author_event") {
+    etablename = "scancode_author_event";
+    esequencename = "scancode_author_event_pk_seq";
+    tablename = "scancode_author";
+  }
+  if (!dbManager.sequenceExists(esequencename)) {
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE SEQUENCE %s"
+      " START WITH 1"
+        " INCREMENT BY 1"
+        " NO MAXVALUE"
+        " NO MINVALUE"
+        " CACHE 1",esequencename));
+  }
+
+  if (!dbManager.tableExists(etablename))
+  {
+    if (tableName == "scancode_copyright_event") {
+    size_t ncolumns = (sizeof(ScancodeDatabaseHandler::columns_copyright_event) / sizeof(ScancodeDatabaseHandler::ColumnDef));
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE table %s(%s)", etablename,
+      getColumnCreationString(ScancodeDatabaseHandler::columns_copyright_event, ncolumns).c_str()
+    )
+    );
+  } else if (tableName == "scancode_author_event") {
+    size_t ncolumns = (sizeof(ScancodeDatabaseHandler::columns_author_event) / sizeof(ScancodeDatabaseHandler::ColumnDef));
+    RETURN_IF_FALSE(dbManager.queryPrintf("CREATE table %s(%s)", etablename,
+      getColumnCreationString(ScancodeDatabaseHandler::columns_author_event, ncolumns).c_str()
+    )
+    );
+  }
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_upload_fk_index"
+        " ON %s"
+        " USING BTREE (upload_fk)",
+      etablename, etablename
+    ));
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_uploadtree_fk_index"
+        " ON %s"
+        " USING BTREE (uploadtree_fk)",
+      etablename, etablename
+    ));
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_scancode_fk_index"
+        " ON %s"
+        " USING BTREE (%s_fk)",
+      etablename, etablename, tablename
+    ));
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "CREATE INDEX %s_hash_index"
+        " ON %s"
+        " USING BTREE (hash)",
+      etablename, etablename
+    ));
+    
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE ONLY %s"
+        " ADD CONSTRAINT upload_fk"
+        " FOREIGN KEY (upload_fk)"
+        " REFERENCES upload(upload_pk) ON DELETE CASCADE",
+      etablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE ONLY %s"
+        " ADD CONSTRAINT uploadtree_fk"
+        " FOREIGN KEY (uploadtree_fk)"
+        " REFERENCES uploadtree(uploadtree_pk) ON DELETE CASCADE",
+      etablename
+    ));
+
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE ONLY %s"
+        " ADD CONSTRAINT %s_fk"
+        " FOREIGN KEY (%s_fk)"
+        " REFERENCES %s(%s_pk) ON DELETE CASCADE",
+      etablename, tablename, tablename, tablename, tablename
+    ));
+    RETURN_IF_FALSE(dbManager.queryPrintf(
+      "ALTER TABLE %s"
+      " ALTER COLUMN scope"
+      " SET DEFAULT 1",
+      etablename
+    ));
+  }
+  return true;
+}
+
 
 // TODO insertNoResult function for copyright and author
-
-

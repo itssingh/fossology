@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * SPDX-License-Identifier: GPL-2.0
+ * SPDX-FileCopyrightText: 2021 Sarita Singh <saritasingh.0425@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ ****************************************************************************/
+
 #ifndef SCANCODE_AGENT_DATABASE_HANDLER_HPP
 #define SCANCODE_AGENT_DATABASE_HANDLER_HPP
 
@@ -85,8 +103,10 @@ private:
 
   static const ColumnDef columns_author[];
   static const ColumnDef columns_copyright[];
-  static const ColumnDef columnsDecision[];
-
+  bool createTableAgentEvents(string tablename) const;
+  
+  static const ColumnDef columns_author_event[];
+  static const ColumnDef columns_copyright_event[];
   bool createTableAgentFindings(string tablename) const;
   std::string getColumnCreationString(const ColumnDef in[], size_t size) const;
 };

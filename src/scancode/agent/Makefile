@@ -1,9 +1,19 @@
-# Copyright Siemens AG 2014-2015
+##############################################################################
+# SPDX-License-Identifier: GPL-2.0 
+# SPDX-FileCopyrightText: 2021 Sarita Singh <saritasingh.0425@gmail.com> 
 #
-# Copying and distribution of this file, with or without modification,
-# are permitted in any medium without royalty provided the copyright
-# notice and this notice are preserved.  This file is offered as-is,
-# without any warranty.
+# This program is free software; you can redistribute it and/or 
+# modify it under the terms of the GNU General Public License 
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of 
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+# GNU General Public License for more details. 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##############################################################################
 
 TOP = ../../..
 VARS = $(TOP)/Makefile.conf
@@ -15,7 +25,7 @@ CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp $(shell pkg-config --libs jsoncpp)
 
 EXE = scancode
 
-OBJECTS = match.o scancode_dbhandler.o licensematch.o scancode.o scancode_wrapper.o scancode_state.o scancode_utils.o
+OBJECTS = match.o scancode_dbhandler.o scancode.o scancode_wrapper.o scancode_state.o scancode_utils.o
 COVERAGE = $(OBJECTS:%.o=%_cov.o)
 
 all: $(CXXFOLIB) $(EXE)

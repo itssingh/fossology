@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * SPDX-License-Identifier: GPL-2.0
+ * SPDX-FileCopyrightText: 2021 Sarita Singh <saritasingh.0425@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ ****************************************************************************/
+
 #include "scancode_utils.hpp"
 #include "scancode_wrapper.hpp"
 #include <iostream>
@@ -5,25 +23,29 @@
 using namespace fo;
 
 /**
- * \brief Disconnect with scheduler returning an error code and exit
- * \param exitval Error code
+ * @brief Disconnect with scheduler returning an error code and exit
+ * @param exitval Error code
  */
 void bail(int exitval) {
   fo_scheduler_disconnect(exitval);
   exit(exitval);
 }
 
+/**
+ * @brief Get state of the agent
+ * @param dbManager DBManager to be used
+ * @return  state of the agent
+ */
 State getState(DbManager &dbManager) {
   int agentId = queryAgentId(dbManager);
   return State(agentId);
 }
 
 /**
- * \brief Get agent id, exit if agent id is incorrect
- * \param[in]  dbConn Database connection object
- * \return ID of the agent
+ * @brief Get agent id, exit if agent id is incorrect
+ * @param[in]  dbConn Database connection object
+ * @return ID of the agent
  */
-
 int queryAgentId(DbManager &dbManager) {
   char *COMMIT_HASH = fo_sysconfig(AGENT_NAME, "COMMIT_HASH");
   char *VERSION = fo_sysconfig(AGENT_NAME, "VERSION");
@@ -42,6 +64,15 @@ int queryAgentId(DbManager &dbManager) {
   return agentId;
 }
 
+/**
+ * @brief Write ARS to the agent's ars table
+ * @param state State of the agent
+ * @param arsId ARS id (0 for new entry)
+ * @param uploadId  Upload ID
+ * @param success Success status
+ * @param dbManager DbManager to use
+ * @return ARS ID.
+ */
 int writeARS(const State &state, int arsId, int uploadId, int success,
              DbManager &dbManager) {
   PGconn *connection = dbManager.getConnection();
@@ -51,6 +82,13 @@ int writeARS(const State &state, int arsId, int uploadId, int success,
                      success);
 }
 
+/**
+ * @brief Process a given upload id, scan from statements and add to database
+ * @param state State of the agent
+ * @param uploadId  Upload id to be processed
+ * @param databaseHandler Database handler object
+ * @return True when upload is successful
+ */
 bool processUploadId(const State &state, int uploadId,
                      ScancodeDatabaseHandler &databaseHandler) {
   vector<unsigned long> fileIds =
@@ -83,14 +121,12 @@ bool processUploadId(const State &state, int uploadId,
   return !errors;
 }
 /**
- * Description:
- * @param state what is state
- * @param pFileId what it it
- * @param databaseHandler what that
- *
- * @return some value
+ * @brief 
+ * @param state State of the agent
+ * @param pFileId pfile Id of upload
+ * @param databaseHandler Database handler object
+ * @return true 
  */
-
 bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
                             ScancodeDatabaseHandler &databaseHandler) {
   char *pFile = databaseHandler.getPFileNameForFileId(pFileId);
@@ -117,41 +153,59 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
     cout << "PFile not found in repo " << pFileId << endl;
     bail(7);
   }
-
   return true;
 }
 
-/**
- * First insert into license cache so that if the licencse if new it gets
- * inserted or if old then simply return primary_key from license_ref table
- *
- * second we query license cahce for the primary key to store the short_name
- * and percentage and pk all in license_file table
- */
 
+/**
+ * @brief match file with license
+ * 
+ * scan file with scancode and save result in the database
+ *  
+ * @param state state of the agent
+ * @param file  code/binary file sent by scheduler 
+ * @param databaseHandler databaseHandler Database handler object
+ * @return true on saving scan result successfully, false otherwise
+ */
 bool matchFileWithLicenses(const State &state, const fo::File &file,
                            ScancodeDatabaseHandler &databaseHandler) {
   string scancodeResult = scanFileWithScancode(state, file);
-  vector<LicenseMatch> scancodeLicenseNames =
-      extractLicensesFromScancodeResult(scancodeResult, file.getFileName());
-  vector<Match> scancodeOtherNames =
-      extractOthersFromScancodeResult(scancodeResult, file.getFileName());
+map<string, vector<Match>> scancodeData =
+      extractDataFromScancodeResult(scancodeResult, file.getFileName());
 
-  return saveLicenseMatchesToDatabase(state, scancodeLicenseNames, file.getId(),
-                                      databaseHandler) &&
-         saveOtherMatchesToDatabase(state, scancodeOtherNames, file.getId(),
-                                    databaseHandler);
+return saveLicenseMatchesToDatabase(
+           state, scancodeData["scancode_license"], file.getId(),
+           databaseHandler) &&
+       saveOtherMatchesToDatabase(
+           state, scancodeData["scancode_statement"], file.getId(),
+           databaseHandler) &&
+       saveOtherMatchesToDatabase(
+           state, scancodeData["scancode_author"], file.getId(),
+           databaseHandler);
 }
 
+/**
+ * @brief save license matches to database
+ * 
+ * insert or catch license in license_ref table
+ * save license in license_file table
+ * save license highlight inforamtion in highlight table
+ * 
+ * @param state state of the agent
+ * @param matches vector of objects of Match class
+ * @param pFileId pfile Id
+ * @param databaseHandler databaseHandler Database handler object
+ * @return true on success, false otherwise
+ */
 bool saveLicenseMatchesToDatabase(const State &state,
-                                  const vector<LicenseMatch> &matches,
+                                  const vector<Match> &matches,
                                   unsigned long pFileId,
                                   ScancodeDatabaseHandler &databaseHandler) {
-  for (vector<LicenseMatch>::const_iterator it = matches.begin();
+  for (vector<Match>::const_iterator it = matches.begin();
        it != matches.end(); ++it) {
-    const LicenseMatch &match = *it;
+    const Match &match = *it;
     databaseHandler.insertOrCacheLicenseIdForName(
-        match.getLicenseName(), match.getLicenseFullName(), match.getTextUrl());
+        match.getMatchName(), match.getLicenseFullName(), match.getTextUrl());
   }
 
   if (!databaseHandler.begin())
@@ -162,12 +216,12 @@ bool saveLicenseMatchesToDatabase(const State &state,
       return false;
   } 
   else {
-    for (vector<LicenseMatch>::const_iterator it = matches.begin();
+    for (vector<Match>::const_iterator it = matches.begin();
          it != matches.end(); ++it) {
-      const LicenseMatch &match = *it;
+      const Match &match = *it;
 
       int agentId = state.getAgentId();
-      string rfShortname = match.getLicenseName();
+      string rfShortname = match.getMatchName();
       int percent = match.getPercentage();
       unsigned start = match.getStartPosition();
       unsigned length = match.getLength();
@@ -202,12 +256,19 @@ bool saveLicenseMatchesToDatabase(const State &state,
   return databaseHandler.commit();
 }
 
+/**
+ * @brief save copyright/copyright holder in the database
+ * @param state state of the agent
+ * @param matches vector of objects of Match class
+ * @param pFileId pfile Id
+ * @param databaseHandler databaseHandler Database handler object
+ * @return  true on success, false otherwise
+ */
 bool saveOtherMatchesToDatabase(const State &state,
                                 const vector<Match> &matches,
                                 unsigned long pFileId,
                                 ScancodeDatabaseHandler &databaseHandler) {
   
-
   if (!databaseHandler.begin())
     return false;
 

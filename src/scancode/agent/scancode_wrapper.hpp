@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * SPDX-License-Identifier: GPL-2.0
+ * SPDX-FileCopyrightText: 2021 Sarita Singh <saritasingh.0425@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ ****************************************************************************/
+
 #ifndef SCANCODE_AGENT_SCANCODE_WRAPPER_HPP
 #define SCANCODE_AGENT_SCANCODE_WRAPPER_HPP
 
@@ -9,16 +27,15 @@
 #include <vector>
 #include<unordered_map>
 #include "files.hpp"
-#include "licensematch.hpp" 
 #include "match.hpp"
 #include "scancode_state.hpp"
-
+#include <map>
 #include <jsoncpp/json/json.h>
 
 using namespace std;
 
 string scanFileWithScancode(const State& state, const fo::File& file);
 string scanFileWithScancode(string filename);
-vector<LicenseMatch> extractLicensesFromScancodeResult( const string& scancodeResult, const string& filename);
-vector<Match> extractOthersFromScancodeResult( const string& scancodeResult, const string& filename);
-#endif 
+map<string, vector<Match>> extractDataFromScancodeResult( const string& scancodeResult, const string& filename);
+
+#endif // SCANCODE_AGENT_SCANCODE_WRAPPER_HPP
