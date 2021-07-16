@@ -54,6 +54,10 @@ class CopyrightHistogram extends HistogramBase {
     $output = array();
     foreach($typeDescriptionPairs as $type=>$description)
     {
+      if($type==="scancode_statement"){
+        $agentId=LatestAgentpk($upload_pk, 'scancode_ars');
+        $this->agentName = "scancode";
+      }
       list ($out, $vars) = $this->getTableForSingleType($type, $description,
         $upload_pk, $uploadtreeId, $filter, $agentId);
       $tableVars[$type] = $vars;

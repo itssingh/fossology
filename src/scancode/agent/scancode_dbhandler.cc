@@ -688,12 +688,6 @@ bool ScancodeDatabaseHandler::createTableAgentEvents( string tableName) const
         " USING BTREE (%s_fk)",
       etablename, etablename, tablename
     ));
-    RETURN_IF_FALSE(dbManager.queryPrintf(
-      "CREATE INDEX %s_hash_index"
-        " ON %s"
-        " USING BTREE (hash)",
-      etablename, etablename
-    ));
     
     RETURN_IF_FALSE(dbManager.queryPrintf(
       "ALTER TABLE ONLY %s"
@@ -703,13 +697,6 @@ bool ScancodeDatabaseHandler::createTableAgentEvents( string tableName) const
       etablename
     ));
 
-    RETURN_IF_FALSE(dbManager.queryPrintf(
-      "ALTER TABLE ONLY %s"
-        " ADD CONSTRAINT uploadtree_fk"
-        " FOREIGN KEY (uploadtree_fk)"
-        " REFERENCES uploadtree(uploadtree_pk) ON DELETE CASCADE",
-      etablename
-    ));
 
     RETURN_IF_FALSE(dbManager.queryPrintf(
       "ALTER TABLE ONLY %s"

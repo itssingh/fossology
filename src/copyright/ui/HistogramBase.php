@@ -216,7 +216,7 @@ abstract class HistogramBase extends FO_Plugin {
     $dataset = $this->agentName."_dataset";
     $arstable = $this->agentName."_ars";
     /* get proper agent_id */
-    $agentId = GetParm("agent", PARM_INTEGER);
+    // $agentId = GetParm("agent", PARM_INTEGER);
     if (empty($agentId))
     {
       $agentId = LatestAgentpk($uploadId, $arstable);
@@ -251,7 +251,7 @@ abstract class HistogramBase extends FO_Plugin {
       return;
     }
 
-    $AgentSelect = AgentSelect($this->agentName, $uploadId, $dataset, $agentId, "onchange=\"addArsGo('newds', 'copyright_dataset');\"");
+    $AgentSelect = AgentSelect($this->agentName, $uploadId, $dataset, $agentId, "onchange=\"addArsGo('newds', $dataset);\"");
 
     /* change the copyright  result when selecting one version of copyright */
     if (!empty($AgentSelect))
@@ -286,7 +286,6 @@ abstract class HistogramBase extends FO_Plugin {
     $this->vars['tables'] = $tableVars;
     $this->vars['pageContent'] = $OutBuf . $tables;
     $this->vars['scriptBlock'] = $this->createScriptBlock();
-
     return;
   }
 

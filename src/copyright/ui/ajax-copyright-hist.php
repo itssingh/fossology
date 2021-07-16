@@ -263,7 +263,7 @@ class CopyrightHistogramProcessPost extends FO_Plugin
 
     $join = "";
     $filterQuery = "";
-    if ($type == 'statement' && $filter == "nolic")
+    if (($type == 'statement' || $type == 'scancode_statement') && $filter == "nolic")
     {
       $noLicStr = "No_license_found";
       $voidLicStr = "Void";
@@ -333,6 +333,7 @@ count(*) AS copyright_count " .
    * - statement => copyright
    * - ecc       => ecc
    * - others    => author
+   * - scancode_statement => scancode_copyright
    * @param string $type Result type
    * @return string Table name
    */
@@ -348,6 +349,9 @@ count(*) AS copyright_count " .
         break;
       case "statement" :
         $tableName = "copyright";
+        break;
+      case "scancode_statement" :
+        $tableName = "scancode_copyright";
         break;
       default:
         $tableName = "author";
