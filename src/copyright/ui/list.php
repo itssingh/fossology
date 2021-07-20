@@ -335,6 +335,12 @@ type, uploadtree_pk, ufile_name, cp.pfile_fk AS PF
         case "url":
           $TypeStr = "$text5";
           break;
+        case "scancode_email":
+            $TypeStr = "$text4";
+            break;
+        case "scancode_url":
+            $TypeStr = "$text5";
+            break;
         case "ecc":
           $TypeStr = _("export restriction");
           break;

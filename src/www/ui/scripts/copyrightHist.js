@@ -20,6 +20,8 @@ $(document).ready(function () {
   tableCopyright = createTablestatement();
   tableScancode = createTablescancode_statement();
   tableEmail = createTableemail();
-  tableUrl = createTableurl();
+      tableUrl = createTableurl();
+      tableScanEmail = createTablescancode_email();
+      tableScanUrl = createTablescancode_url();
 });
 

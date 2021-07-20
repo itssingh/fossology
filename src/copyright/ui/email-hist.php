@@ -44,12 +44,20 @@ class EmailHistogram extends HistogramBase {
     $typeDescriptionPairs = array(
             'email' => _("Email"),
             'url' => _("URL"),
-            'author' => _("Author")
+            'author' => _("Author"),
+            'scancode_author' => _("Author"),
+            'scancode_url' => _("URL"),
+            'scancode_email' => _("Email")
       );
+      
     $tableVars = array();
     $output = array();
     foreach($typeDescriptionPairs as $type=>$description)
     {
+      if($type =="scancode_author" || $type =="scancode_email" || $type =="scancode_url"){
+        $agentId=LatestAgentpk($upload_pk, 'scancode_ars');
+        $this->agentName = "scancode";
+      }
       list($out, $vars) = $this->getTableForSingleType($type, $description, $upload_pk, $uploadtreeId, $filter, $agentId);
       $tableVars[$type] = $vars;
       $output[] = $out;
@@ -66,11 +74,16 @@ class EmailHistogram extends HistogramBase {
    */
   protected function fillTables($upload_pk, $Uploadtree_pk, $filter, $agentId, $VF)
   {
-    list($VEmail, $VUrl, $VAuthor, $tableVars) = $this->getTableContent($upload_pk, $Uploadtree_pk, $filter, $agentId);
+    list($VEmail, $VUrl, $VAuthor, $VScanAuthor, $VScanUrl, $VScanEmail, $tableVars) = $this->getTableContent($upload_pk, $Uploadtree_pk, $filter, $agentId);
 
     $out = $this->renderString('emailhist_tables.html.twig',
-            array('contEmail'=>$VEmail, 'contUrl'=>$VUrl, 'contAuthor'=>$VAuthor,
-                'fileList'=>$VF));
+            array('contEmail'=>$VEmail, 
+            'contUrl'=>$VUrl, 
+            'contAuthor'=>$VAuthor,
+            'contScanAuthor' => $VScanAuthor,
+            'contScanUrl' => $VScanUrl,
+            'contScanEmail' => $VScanEmail,
+            'fileList'=>$VF));
     return array($out, $tableVars);
   }
 
@@ -108,11 +121,16 @@ class EmailHistogram extends HistogramBase {
     return "
 
     var emailTabCookie = 'stickyEmailTab';
-
+    var emailTabCookieTWO = 'stickyEmailTabTWO';
+    var  emailTabCookieTHREE= 'stickyEmailTabTHREE';
+    
     $(document).ready(function() {
       tableEmail = createTableemail();
       tableUrl = createTableurl();
       tableAuthor = createTableauthor();
+      tableScanEmail = createTablescancode_email();
+      tableScanUrl = createTablescancode_url();
+      tableScanAuthor = createTablescancode_author();
       $('#testReplacementemail').click(function() {
         testReplacement(tableEmail, 'email');
       });
@@ -122,7 +140,34 @@ class EmailHistogram extends HistogramBase {
       $('#testReplacementauthor').click(function() {
         testReplacement(tableAuthor, 'author');
       });
-      $(\"#EmailUrlAuthorTabs\").tabs({
+      $('#testReplacementScanemail').click(function() {
+        testReplacement(tableScanEmail, 'email');
+      });
+      $('#testReplacementScanurl').click(function() {
+        testReplacement(tableScanUrl, 'url');
+      });
+      $('#testReplacementScanauthor').click(function() {
+        testReplacement(tableScanAuthor, 'author');
+      });
+      $(\"#copyrightFindingsTabs\").tabs({
+        active: ($.cookie(emailTabCookie) || 0),
+        activate: function(e, ui){
+          // Get active tab index and update cookie
+          var idString = $(e.currentTarget).attr('id');
+          idString = parseInt(idString.slice(-1)) - 1;
+          $.cookie(emailTabCookie, idString);
+        }
+      });
+      $(\"#FossEmailUrlAuthorTabs\").tabs({
+        active: ($.cookie(emailTabCookieTWO) || 0),
+        activate: function(e, ui){
+          // Get active tab index and update cookie
+          var idString = $(e.currentTarget).attr('id');
+          idString = parseInt(idString.slice(-1)) - 1;
+          $.cookie(emailTabCookieTWO, idString);
+        }
+      });
+      $(\"#ScanEmailUrlAuthorTabs\").tabs({
         active: ($.cookie(emailTabCookie) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie

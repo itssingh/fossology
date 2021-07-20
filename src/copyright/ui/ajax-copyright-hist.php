@@ -350,8 +350,13 @@ count(*) AS copyright_count " .
       case "statement" :
         $tableName = "copyright";
         break;
-      case "scancode_statement" :
+      case "scancode_statement":
         $tableName = "scancode_copyright";
+        break;
+      case "scancode_email":
+      case "scancode_author":
+      case "scancode_url":
+        $tableName = "scancode_author";
         break;
       default:
         $tableName = "author";
