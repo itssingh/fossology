@@ -84,7 +84,7 @@ public:
   void insertOrCacheLicenseIdForName(std::string const& rfShortName, std::string const& rfFullname, std::string const& rfTexturl);
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
   bool insertInDatabase(DatabaseEntry& entry) const;
-  std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
+  std::vector<unsigned long> queryFileIdsForUpload(int uploadId, bool ignoreFilesWithMimeType);
   bool createTables() const;
 private:
   unsigned long selectOrInsertLicenseIdForName(std::string rfShortname, std::string rfFullname, std::string rfTexturl);

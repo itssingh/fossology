@@ -63,7 +63,7 @@ unsigned getFilePointer(const string &filename, size_t start_line,
  * custom template provide only those information which
  * user wants to see. 
  * 
- * @param state 
+ * @param state an object of class State which can provide agent Id and CliOptions
  * @param file  code/binary file sent by scheduler
  * @return scanned data output on success, null otherwise
  */
@@ -73,7 +73,11 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   char buffer[512];
 
   string command =
-      "scancode -lc --custom-output - --custom-template scancode_template.html " + file.getFileName() + " --license-text";
+      "scancode -" + state.getCliOptions() +
+      " --custom-output - --custom-template scancode_template.html " +
+      file.getFileName() +
+      ((state.getCliOptions().find('l') != string::npos) ? " --license-text"
+                                                         : "");
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
@@ -117,6 +121,8 @@ return result;
  * @param filename  name of the file uploaded
  * @return map having key as type of scanned and value as content for the type
  */
+
+// HACK: Use try-catch block for exception handling
 map<string, vector<Match>> extractDataFromScancodeResult(const string& scancodeResult, const string& filename) {
   Json::Reader scanner;
   Json::Value scancodevalue;

@@ -25,18 +25,25 @@
 using namespace std;
 
 /**
- * class to get agent Id
+ * class to get agent Id and CliOptions
  */
 class State {
 public:
   State(int agentId);
+  void setCliOptions(string cliOptions);
   int getAgentId() const;
+  string getCliOptions() const;
 
 private:
   /**
    * agent Id is agent_pk in the agent table
    */
   int agentId;
+
+  /**
+   * cliOptions command line options for scancode toolkit
+   */
+  string cliOptions;
 };
 
 #endif // SCANCODE_AGENT_STATE_HPP

@@ -25,7 +25,20 @@
 State::State(int agentId) : agentId(agentId) {}
 
 /**
- * @brief get agent Id
+ * @brief   setter for command line interface options
+ * @param   cliOptions  command line options for scancode toolkit 
+ */
+void State::setCliOptions(string cliOptions){
+    this->cliOptions = cliOptions;
+}
+/**
+ * @brief getter function for agent Id
  * @return  agentId(agent_pk in the agent table)
  */
 int State::getAgentId() const { return agentId; };
+
+/**
+ * @brief   getter function for cliOptions
+ * @return  cliOptions  command line options for scancode toolkit
+ */
+string State::getCliOptions() const { return cliOptions; };

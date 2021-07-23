@@ -108,9 +108,9 @@ ScancodeDatabaseHandler ScancodeDatabaseHandler::spawn() const
  * @param uploadId  Upload ID of uploads
  * @return Vector of pfile IDs
  */
-vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadId)
+vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadId, bool ignoreFilesWithMimeType)
 {
-  return queryFileIdsVectorForUpload(uploadId,true);
+  return queryFileIdsVectorForUpload(uploadId,ignoreFilesWithMimeType);
 }
 
 /**
@@ -480,7 +480,7 @@ bool ScancodeDatabaseHandler::createTables() const
   dbManager.ignoreWarnings(false);
   return tablesChecked;
 }
-
+// #define SEQUENCENAME "%s"
 
 const ScancodeDatabaseHandler::ColumnDef
     ScancodeDatabaseHandler::columns_copyright[] = {

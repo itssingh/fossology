@@ -18,9 +18,11 @@
 
 #include "scancode_utils.hpp"
 #include "scancode_wrapper.hpp"
+#include <boost/program_options.hpp>
 #include <iostream>
 
 using namespace fo;
+namespace po = boost::program_options;
 
 /**
  * @brief Disconnect with scheduler returning an error code and exit
@@ -90,9 +92,9 @@ int writeARS(const State &state, int arsId, int uploadId, int success,
  * @return True when upload is successful
  */
 bool processUploadId(const State &state, int uploadId,
-                     ScancodeDatabaseHandler &databaseHandler) {
+                     ScancodeDatabaseHandler &databaseHandler, bool ignoreFilesWithMimeType) {
   vector<unsigned long> fileIds =
-      databaseHandler.queryFileIdsForUpload(uploadId);
+      databaseHandler.queryFileIdsForUpload(uploadId,ignoreFilesWithMimeType);
 
   bool errors = false;
 #pragma omp parallel
@@ -121,11 +123,11 @@ bool processUploadId(const State &state, int uploadId,
   return !errors;
 }
 /**
- * @brief 
+ * @brief match PFile with Licenses
  * @param state State of the agent
  * @param pFileId pfile Id of upload
  * @param databaseHandler Database handler object
- * @return true 
+ * @return true on success, false otherwise
  */
 bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
                             ScancodeDatabaseHandler &databaseHandler) {
@@ -200,7 +202,8 @@ return saveLicenseMatchesToDatabase(
 bool saveLicenseMatchesToDatabase(const State &state,
                                   const vector<Match> &matches,
                                   unsigned long pFileId,
-                                  ScancodeDatabaseHandler &databaseHandler) {
+                                  ScancodeDatabaseHandler &databaseHandler) 
+                                  {
   for (vector<Match>::const_iterator it = matches.begin();
        it != matches.end(); ++it) {
     const Match &match = *it;
@@ -210,26 +213,28 @@ bool saveLicenseMatchesToDatabase(const State &state,
 
   if (!databaseHandler.begin())
     return false;
-  if (matches.size() == 0) {
+  if (matches.size() == 0) 
+  {
     cout << "No license found\n";
     if (!databaseHandler.insertNoResultInDatabase(state.getAgentId(), pFileId))
       return false;
   } 
-  else {
+  else 
+  {
     for (vector<Match>::const_iterator it = matches.begin();
-         it != matches.end(); ++it) {
+         it != matches.end(); ++it) 
+    {
       const Match &match = *it;
-
       int agentId = state.getAgentId();
       string rfShortname = match.getMatchName();
       int percent = match.getPercentage();
       unsigned start = match.getStartPosition();
       unsigned length = match.getLength();
-
       unsigned long licenseId =
           databaseHandler.getCachedLicenseIdForName(rfShortname);
 
-      if (licenseId == 0) {
+      if (licenseId == 0) 
+      {
         databaseHandler.rollback();
         cout << "cannot get licenseId for shortname '" + rfShortname + "'"
              << endl;
@@ -238,15 +243,18 @@ bool saveLicenseMatchesToDatabase(const State &state,
 
       long licenseFileId = databaseHandler.saveLicenseMatch(agentId, pFileId,
                                                             licenseId, percent);
-
-      if (licenseFileId > 0) {
+      if (licenseFileId > 0) 
+      {
         bool highlightRes =
             databaseHandler.saveHighlightInfo(licenseFileId, start, length);
-        if (!highlightRes) {
+        if (!highlightRes) 
+        {
           databaseHandler.rollback();
           cout << "failing save licensehighlight" << endl;
         }
-      } else {
+      } 
+      else 
+      {
         databaseHandler.rollback();
         cout << "failing save licenseMatch" << endl;
         return false;
@@ -285,4 +293,64 @@ bool saveOtherMatchesToDatabase(const State &state,
     }
   }
   return databaseHandler.commit();
+}
+
+// clueI add in this command line parser
+
+/**
+ * @brief parse command line options for scancode toolkit to get required falgs for scanning
+ * @param[in] argc  command line arguments count 
+ * @param[in] argv  command line argument vector 
+ * @param[out] cliOption command line options for scancode toolkit 
+ * @param[out] ignoreFilesWithMimeType  set this flag is user wants to ignore FilesWithMimeType
+ * @return  true if parsing is successful otherwise false
+ */
+bool parseCommandLine(int argc, char **argv, string &cliOption, bool &ignoreFilesWithMimeType) 
+{
+  cout<<"parsing started\n";
+  po::options_description desc(AGENT_NAME ": available options");
+  desc.add_options()
+  ("help,h", "show this help")
+  ("ignoreFilesWithMimeType,I","ignoreFilesWithMimeType")
+  ("license,l", "scancode license")
+  ("copyright,r", "scancode copyright")
+  ("email,e", "scancode email")
+  ("url,u", "scancode url")
+  ("config,c", boost::program_options::value<string>(), "path to the sysconfigdir")
+  ("scheduler_start", "specifies, that the command was called by the scheduler")
+  ("userID", boost::program_options::value<int>(), "the id of the user that created the job (only in combination with --scheduler_start)")
+  ("groupID", boost::program_options::value<int>(), "the id of the group of the user that created the job (only in combination with --scheduler_start)")
+  ("jobId", boost::program_options::value<int>(), "the id of the job (only in combination with --scheduler_start)");
+  po::variables_map vm;
+  try
+  {
+    cout<<"parsing check started\n";
+    po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
+    if (vm.count("help") > 0) 
+    {
+      cout << desc << "\n";
+      exit(EXIT_SUCCESS);
+    }
+    cliOption = "";
+    cliOption += vm.count("license") > 0 ? "l" : "";
+    cliOption += vm.count("copyright") > 0 ? "c" : "";
+    cliOption += vm.count("email") > 0 ? "e" : "";
+    cliOption += vm.count("url") > 0 ? "u" : "";
+    ignoreFilesWithMimeType =
+        vm.count("ignoreFilesWithMimeType") > 0 ? true : false;
+  } 
+  catch (boost::bad_any_cast &) 
+  {
+    cout << "wrong parameter type\n";
+    cout << desc << "\n";
+    return false;
+  } 
+  catch (boost::program_options::error &) 
+  {
+    cout << "wrong command line arguments\n";
+    cout << desc << "\n";
+    return false;
+  }
+  cout<<"parsing success: "<<cliOption<<" "<<ignoreFilesWithMimeType;
+  return true;
 }

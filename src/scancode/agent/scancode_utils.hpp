@@ -39,10 +39,11 @@ State getState(fo::DbManager& dbManager);
 int queryAgentId(fo::DbManager& dbManager);
 int writeARS(const State& state, int arsId, int uploadId, int success, fo::DbManager& dbManager);
 void bail(int exitval);
-bool processUploadId(const State& state, int uploadId, ScancodeDatabaseHandler& databaseHandler);
+bool processUploadId(const State& state, int uploadId, ScancodeDatabaseHandler& databaseHandler, bool ignoreFilesWithMimeType);
 bool matchPFileWithLicenses(const State& state, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
 bool matchFileWithLicenses(const State& state, const fo::File& file, ScancodeDatabaseHandler& databaseHandler);
 bool saveLicenseMatchesToDatabase(const State& state, const vector<Match>& matches, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
 bool saveOtherMatchesToDatabase(const State& state, const vector<Match>& matches, unsigned long pFileId, ScancodeDatabaseHandler& databaseHandler);
+bool parseCommandLine(int argc, char** argv, string& cliOption, bool& ignoreFilesWithMimeType);
 
 #endif // SCANCODE_AGENT_UTILS_HPP

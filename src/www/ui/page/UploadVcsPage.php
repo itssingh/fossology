@@ -160,21 +160,8 @@ class UploadVcsPage extends UploadPageBase
     if ($adj2nest_jq_pk < 0) {
       return array(false, _($ErrorMsg), $description);
     }
-
-    AgentCheckBoxDo($jobpk, $uploadId);
-
-    $msg = "";
-    /** check if the scheudler is running */
-    $status = GetRunnableJobList();
-    if (empty($status)) {
-      $msg .= _("Is the scheduler running? ");
-    }
-    $Url = Traceback_uri() . "?mod=showjobs&upload=$uploadId";
-    $text = _("The upload");
-    $text1 = _("has been queued. It is");
-    $msg .= "$text $Name $text1 ";
-    $keep =  "<a href='$Url'>upload #" . $uploadId . "</a>.\n";
-    return array(true, $msg.$keep, $description, $uploadId);
+    $message = $this->postUploadAddJobs($request, $Name, $uploadId);
+    return array(true, $message, $description, $uploadId);
   }
 }
 

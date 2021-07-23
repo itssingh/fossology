@@ -116,14 +116,16 @@ class EmailHistogram extends HistogramBase {
    * @copydoc HistogramBase::createScriptBlock()
    * @see HistogramBase::createScriptBlock()
    */
+   // HACK: if the last two cookie function are inside the #EmailUrlAuthorTabs 
+   // function then the tabs works but not get loaded at initialization
+   
   protected function createScriptBlock()
   {
     return "
 
     var emailTabCookie = 'stickyEmailTab';
     var emailTabCookieTWO = 'stickyEmailTabTWO';
-    var  emailTabCookieTHREE= 'stickyEmailTabTHREE';
-    
+    var emailTabCookieTHREE= 'stickyEmailTabTHREE';
     $(document).ready(function() {
       tableEmail = createTableemail();
       tableUrl = createTableurl();
@@ -149,7 +151,7 @@ class EmailHistogram extends HistogramBase {
       $('#testReplacementScanauthor').click(function() {
         testReplacement(tableScanAuthor, 'author');
       });
-      $(\"#copyrightFindingsTabs\").tabs({
+      $('#EmailUrlAuthorTabs').tabs({
         active: ($.cookie(emailTabCookie) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie
@@ -158,7 +160,7 @@ class EmailHistogram extends HistogramBase {
           $.cookie(emailTabCookie, idString);
         }
       });
-      $(\"#FossEmailUrlAuthorTabs\").tabs({
+      $('#FossEmailUrlAuthorTabs').tabs({
         active: ($.cookie(emailTabCookieTWO) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie
@@ -167,13 +169,13 @@ class EmailHistogram extends HistogramBase {
           $.cookie(emailTabCookieTWO, idString);
         }
       });
-      $(\"#ScanEmailUrlAuthorTabs\").tabs({
-        active: ($.cookie(emailTabCookie) || 0),
+      $('#ScanEmailUrlAuthorTabs').tabs({
+        active: ($.cookie(emailTabCookieTHREE) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie
           var idString = $(e.currentTarget).attr('id');
           idString = parseInt(idString.slice(-1)) - 1;
-          $.cookie(emailTabCookie, idString);
+          $.cookie(emailTabCookieTHREE, idString);
         }
       });
     });

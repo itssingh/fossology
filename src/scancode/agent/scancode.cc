@@ -37,12 +37,18 @@ using namespace std;
     return (retval);\
   } while(0)
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
   DbManager dbManager(&argc, argv);
   ScancodeDatabaseHandler databaseHandler(dbManager);
-  
+  string scanFlags;
+  bool ignoreFilesWithMimeType;
+  if(!parseCommandLine(argc, argv, scanFlags, ignoreFilesWithMimeType)){
+    return_sched(1);
+  }
+
   State state = getState(dbManager);
+  state.setCliOptions(scanFlags);
     if (!databaseHandler.createTables())
     {
       std::cout << "FATAL: initialization failed" << std::endl;
@@ -60,7 +66,7 @@ int main(int argc, char** argv)
     if (arsId <= 0)
       bail(5);
 
-    if (!processUploadId(state, uploadId, databaseHandler))
+    if (!processUploadId(state, uploadId, databaseHandler,ignoreFilesWithMimeType))
       bail(2);
 
     fo_scheduler_heart(0);

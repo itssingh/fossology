@@ -18,11 +18,13 @@
  ****************************************************************************/
 
 namespace Fossology\Scancode\Ui;
+use Symfony\Component\HttpFoundation\Request;
 
 use Fossology\Lib\Plugin\AgentPlugin;
 
 class ScancodesAgentPlugin extends AgentPlugin
 {
+  const SCAN_FLAG = '-';
   public function __construct() {
     $this->Name = "agent_scancode";
     $this->Title =  _("Scancode Toolkit");
@@ -31,34 +33,86 @@ class ScancodesAgentPlugin extends AgentPlugin
     parent::__construct();
   }
 
+  /**
+   * @brief Render HTML from template
+   * @param array $vars Variables using in template
+   * @return string HTML rendered from agent_decider.html.twig template
+   */
+  public function renderContent(&$vars)
+  {
+    $renderer = $GLOBALS['container']->get('twig.environment');
+    return $renderer->loadTemplate('scancode.html.twig')->render($vars);
+  }
+
+  /**
+   * @brief Render footer HTML
+   * @param array $vars Variables using in template
+   * @return string Footer HTML
+   */
+  public function renderFoot(&$vars)
+  {
+    return "";
+  }
+
+  // l-> license
+  // c-> copyright
+  // e-> email 
+  // u-> url
+
+  /**
+   * @brief Schedule decider agent
+   * @param int $jobId
+   * @param int $uploadId
+   * @param string $errorMsg
+   * @param Request $request Session request
+   * @return string
+   */
+
+  //  ASK: mismatch of number of arguments 
+  // UploadPageBase.php ln:144
+  
+  public function scheduleAgent($jobId, $uploadId, &$errorMsg, $request)
+  {
+    $dependencies = array();
+    $flags = $request->get('scancodeFlags') ?: array();
+    $scanMode = '';
+    foreach ($flags as $flag) 
+    {
+      switch ($flag) 
+      {
+        case "license":
+          $scanMode .= 'l';
+          break;
+        case "copyright":
+          $scanMode .= 'r';
+          break;
+        case "email":
+          $scanMode .= 'e';
+          break;
+        case "url":
+          $scanMode .= 'u';
+          break;
+      }
+    }
+    if (empty($scanMode))
+    {
+      return 0;
+    }
+    $unpackArgs = intval(@$_POST['scm']) == 1 ? 'I' : '';
+    if (!empty($unpackArgs)) 
+    {
+      $dependencies[] = 'agent_mimetype';
+      $scanMode .= $unpackArgs;
+    }
+    $args = self::SCAN_FLAG.$scanMode;
+    return parent::AgentAdd($jobId, $uploadId, $errorMsg, array_unique($dependencies) , $args);
+  }
+  
   function AgentHasResults($uploadId=0)
   {
     return CheckARS($uploadId, $this->AgentName, "scancode agent", "scancode_ars");
   }
   
-  /**
-   * @copydoc Fossology\Lib\Plugin\AgentPlugin::AgentAdd()
-   * @see \Fossology\Lib\Plugin\AgentPlugin::AgentAdd()
-   */
-  public function AgentAdd($jobId, $uploadId, &$errorMsg, $dependencies=array(), $arguments=null)
-  {
-    $unpackArgs = intval(@$_POST['scm']) == 1 ? '-I' : '';
-    if ($this->AgentHasResults($uploadId) == 1) {
-      return 0;
-    }
-
-    $jobQueueId = \IsAlreadyScheduled($jobId, $this->AgentName, $uploadId);
-    if ($jobQueueId != 0) {
-      return $jobQueueId;
-    }
-
-    $args = $unpackArgs;
-    if (!empty($unpackArgs)) {
-      return $this->doAgentAdd($jobId, $uploadId, $errorMsg, array("agent_mimetype"),$uploadId,$args);
-    } else {
-      return $this->doAgentAdd($jobId, $uploadId, $errorMsg, array("agent_adj2nest"), $uploadId);
-    }
-  }
 
   /**
    * Check if agent already included in the dependency list
@@ -78,5 +132,14 @@ class ScancodesAgentPlugin extends AgentPlugin
     }
     return false;
   }
+  /**
+   * @copydoc Fossology::Lib::Plugin::AgentPlugin::preInstall()
+   * @see Fossology::Lib::Plugin::AgentPlugin::preInstall()
+   */
+  public function preInstall()
+  {
+    menu_insert("ParmAgents::" . $this->Title, 0, $this->Name);
+  }
 }
+
 register_plugin(new ScancodesAgentPlugin());

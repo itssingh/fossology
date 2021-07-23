@@ -21,7 +21,7 @@ include $(VARS)
 
 DEF = -DDATADIR='"$(MODDIR)"'
 CXXFLAGS_LOCAL = $(FO_CXXFLAGS) -I. -Wall -fopenmp $(shell pkg-config --cflags jsoncpp)
-CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp $(shell pkg-config --libs jsoncpp)
+CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -lboost_program_options -lboost_system -fopenmp $(shell pkg-config --libs jsoncpp)
 
 EXE = scancode
 
