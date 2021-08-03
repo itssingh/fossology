@@ -116,16 +116,14 @@ class EmailHistogram extends HistogramBase {
    * @copydoc HistogramBase::createScriptBlock()
    * @see HistogramBase::createScriptBlock()
    */
-   // HACK: if the last two cookie function are inside the #EmailUrlAuthorTabs 
-   // function then the tabs works but not get loaded at initialization
    
   protected function createScriptBlock()
   {
     return "
 
     var emailTabCookie = 'stickyEmailTab';
-    var emailTabCookieTWO = 'stickyEmailTabTWO';
-    var emailTabCookieTHREE= 'stickyEmailTabTHREE';
+    var emailTabFossCookie = 'stickyEmailFossTab';
+    var emailTabScanCookie = 'stickyEmailScanTab';
     $(document).ready(function() {
       tableEmail = createTableemail();
       tableUrl = createTableurl();
@@ -161,21 +159,35 @@ class EmailHistogram extends HistogramBase {
         }
       });
       $('#FossEmailUrlAuthorTabs').tabs({
-        active: ($.cookie(emailTabCookieTWO) || 0),
+        active: ($.cookie(emailTabFossCookie) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie
-          var idString = $(e.currentTarget).attr('id');
-          idString = parseInt(idString.slice(-1)) - 1;
-          $.cookie(emailTabCookieTWO, idString);
+          var tabIdFoss = $(ui.newPanel).attr('id');
+          var idStringFoss = 0;
+          if (tabIdFoss == 'FossEmailTab') {
+            idStringFoss = 0;
+          } else if (tabIdFoss == 'FossUrlTab') {
+            idStringFoss = 1;
+          } else if (tabIdFoss == 'FossAuthorTab') {
+            idStringFoss = 2;
+          }
+          $.cookie(emailTabFossCookie, idStringFoss);
         }
       });
       $('#ScanEmailUrlAuthorTabs').tabs({
-        active: ($.cookie(emailTabCookieTHREE) || 0),
+        active: ($.cookie(emailTabScanCookie) || 0),
         activate: function(e, ui){
           // Get active tab index and update cookie
-          var idString = $(e.currentTarget).attr('id');
-          idString = parseInt(idString.slice(-1)) - 1;
-          $.cookie(emailTabCookieTHREE, idString);
+          var tabIdScan = $(ui.newPanel).attr('id');
+          var idStringScan = 0;
+          if (tabIdScan == 'ScanEmailTab') {
+            idStringScan = 0;
+          } else if (tabIdScan == 'ScanUrlTab') {
+            idStringScan = 1;
+          } else if (tabIdScan == 'ScanAuthorTab') {
+            idStringScan = 2;
+          }
+          $.cookie(emailTabScanCookie, idStringScan);
         }
       });
     });

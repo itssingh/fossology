@@ -160,7 +160,7 @@ class UploadVcsPage extends UploadPageBase
     if ($adj2nest_jq_pk < 0) {
       return array(false, _($ErrorMsg), $description);
     }
-    $message = $this->postUploadAddJobs($request, $Name, $uploadId);
+    $message = $this->postUploadAddJobs($request, $Name, $uploadId, $jobpk);
     return array(true, $message, $description, $uploadId);
   }
 }

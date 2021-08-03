@@ -78,19 +78,19 @@ if [[ $BUILDTIME ]]; then
   case "$DISTRO" in
     Debian|Ubuntu)
       apt-get $YesOpt install \
-        python3.6 python3-pip
-        python3.6-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-devlibpopt0
+        python3 python3-pip \
+        python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
       ;;
     Fedora)
       yum $YesOpt install \
-        python3.6 python3-pip
-        python3.6-devel xz-libs zlib libxml2-devel libxslt-devel bzip2-libs libpopt0
+        python3 python3-pip \
+        python3-devel xz-libs zlib libxml2-devel libxslt-devel bzip2-libs libpopt0
       ;;
     RedHatEnterprise*|CentOS)
       yum $YesOpt install epel-release;
       yum $YesOpt install \
-        rh-python3.6 python3-pip
-        python3.6-devel zlib bzip2-libs xz-libs libxml2-devel libxslt-devellibpopt0
+        rh-python3 python3-pip \
+        python3-devel zlib bzip2-libs xz-libs libxml2-devel libxslt-devel libpopt0
       ;;
     *) echo "ERROR: Unknown or Unsupported $DISTRO $CODENAME release, please report to the mailing list"; exit 1;;
   esac
@@ -103,19 +103,19 @@ if [[ $RUNTIME ]]; then
   case "$DISTRO" in
     Debian|Ubuntu)
       apt-get $YesOpt install \
-        python3.6 python3-pip
-        python3.6-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-devlibpopt0
+        python3 python3-pip \
+        python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
         ;;
     Fedora)
       yum $YesOpt install \
-        python3.6 python3-pip
-        python3.6-devel xz-libs zlib libxml2-devel libxslt-devel bzip2-libs libpopt0
+        python3 python3-pip \
+        python3-devel xz-libs zlib libxml2-devel libxslt-devel bzip2-libs libpopt0
       ;;
     RedHatEnterprise*|CentOS)
       yum $YesOpt install epel-release;
       yum $YesOpt install \
-        rh-python3.6 python3-pip
-        python3.6-devel zlib bzip2-libs xz-libs libxml2-devel libxslt-devellibpopt0
+        rh-python3 python3-pip \
+        python3-devel zlib bzip2-libs xz-libs libxml2-devel libxslt-devel libpopt0
       ;;
     *) echo "ERROR: Unknown or Unsupported $DISTRO $CODENAME release, please report to the mailing list"; exit 1;;
   esac

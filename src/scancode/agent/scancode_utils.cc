@@ -351,6 +351,6 @@ bool parseCommandLine(int argc, char **argv, string &cliOption, bool &ignoreFile
     cout << desc << "\n";
     return false;
   }
-  cout<<"parsing success: "<<cliOption<<" "<<ignoreFilesWithMimeType;
+  cout<<"parsing success: cliOption = "<<cliOption<<" ignoreFilesWithMimeType = "<<ignoreFilesWithMimeType<<"\n";
   return true;
 }

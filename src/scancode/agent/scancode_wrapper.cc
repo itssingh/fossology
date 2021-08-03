@@ -22,6 +22,8 @@
 #include <iostream>
 #include<fstream>
 
+#define MINSCORE 50
+
 /**
  * @brief convertes start line to start byte of the matched text
  * 
@@ -76,8 +78,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
       "scancode -" + state.getCliOptions() +
       " --custom-output - --custom-template scancode_template.html " +
       file.getFileName() +
-      ((state.getCliOptions().find('l') != string::npos) ? " --license-text"
-                                                         : "");
+      ((state.getCliOptions().find('l') != string::npos) ? " --license-text --license-score " + to_string(MINSCORE): "");
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
@@ -171,7 +172,6 @@ map<string, vector<Match>> extractDataFromScancodeResult(const string& scancodeR
   } else {
     cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()
          << endl;
-    bail(-30);
   }
   return result;
 }
