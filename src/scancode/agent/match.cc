@@ -45,6 +45,14 @@ Match::Match(string matchName, int percentage, string licenseFullName,
       startPosition(startPosition), length(length) {}
 
 /**
+ * @brief constructor for match class intended to store No license information
+ * @param matchName spdx key for license
+ */
+
+Match::Match(string matchName)
+    : matchName(matchName) {}
+    
+/**
  * Default destructor for match class
  */
 

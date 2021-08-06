@@ -48,9 +48,11 @@ unsigned getFilePointer(const string &filename, size_t start_line,
     unsigned int pos = str.find(match_text); 
     if (pos != string::npos) {
       return file_p + pos;
+    }else{
+      LOG_NOTICE("Failed to find startbyte for %s\n", filename.c_str());
     }
   }
-  return -1;
+  return 0;
 }
 
 /**
@@ -77,12 +79,12 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   string command =
       "scancode -" + state.getCliOptions() +
       " --custom-output - --custom-template scancode_template.html " +
-      file.getFileName() +
+      file.getFileName() + " --quiet " +
       ((state.getCliOptions().find('l') != string::npos) ? " --license-text --license-score " + to_string(MINSCORE): "");
   string result = "";
 
   if (!(in = popen(command.c_str(), "r"))) {
-    cout << "could not execute scancode command: " << command << endl;
+    LOG_FATAL("could not execute scancode command: %s \n", command.c_str());
     bail(1);
   }
 
@@ -91,7 +93,7 @@ string scanFileWithScancode(const State &state, const fo::File &file) {
   }
 
   if (pclose(in) != 0) {
-    cout << "could not execute scancode command: " << command << endl;
+    LOG_FATAL("could not execute scancode command: %s \n", command.c_str());
     bail(1);
   }
   unsigned int startjson = result.find("{");
@@ -123,7 +125,6 @@ return result;
  * @return map having key as type of scanned and value as content for the type
  */
 
-// HACK: Use try-catch block for exception handling
 map<string, vector<Match>> extractDataFromScancodeResult(const string& scancodeResult, const string& filename) {
   Json::Reader scanner;
   Json::Value scancodevalue;
@@ -132,18 +133,27 @@ map<string, vector<Match>> extractDataFromScancodeResult(const string& scancodeR
   vector<Match> licenses;
   if (isSuccessful) {
     Json::Value licensearrays = scancodevalue["licenses"];
-    for (unsigned int i = 0; i < licensearrays.size(); i++) {
-        Json::Value oneresult = licensearrays[i];
-          string licensename = oneresult["key"].asString();
-          int percentage = (int)oneresult["score"].asFloat();
-          string full_name=oneresult["name"].asString();
-          string text_url=oneresult["text_url"].asString();
-          string match_text = oneresult["matched_text"].asString();
-          unsigned long start_line=oneresult["start_line"].asUInt();
-          string temp_text= match_text.substr(0,match_text.find("\n"));
-          unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
-          unsigned length = match_text.length();
-          result["scancode_license"].push_back(Match(licensename,percentage,full_name,text_url,start_pointer,length));
+    if(!licensearrays.size())
+    {
+      LOG_NOTICE("No license found\n");
+      result["scancode_license"].push_back(Match("No_license_found"));
+    }
+    else
+    {
+      for (unsigned int i = 0; i < licensearrays.size(); i++) 
+      {
+          Json::Value oneresult = licensearrays[i];
+            string licensename = oneresult["key"].asString();
+            int percentage = (int)oneresult["score"].asFloat();
+            string full_name=oneresult["name"].asString();
+            string text_url=oneresult["text_url"].asString();
+            string match_text = oneresult["matched_text"].asString();
+            unsigned long start_line=oneresult["start_line"].asUInt();
+            string temp_text= match_text.substr(0,match_text.find("\n"));
+            unsigned start_pointer = getFilePointer(filename, start_line, temp_text);
+            unsigned length = match_text.length();
+            result["scancode_license"].push_back(Match(licensename,percentage,full_name,text_url,start_pointer,length));
+      }
     }
 
     Json::Value copyarrays = scancodevalue["copyrights"];
@@ -170,8 +180,7 @@ map<string, vector<Match>> extractDataFromScancodeResult(const string& scancodeR
           result["scancode_author"].push_back(Match(holdername,type,start_pointer,length));
     }
   } else {
-    cerr << "JSON parsing failed " << scanner.getFormattedErrorMessages()
-         << endl;
+    LOG_FATAL("JSON parsing failed %s \n", scanner.getFormattedErrorMessages().c_str());
   }
   return result;
 }

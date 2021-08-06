@@ -134,7 +134,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
   char *pFile = databaseHandler.getPFileNameForFileId(pFileId);
 
   if (!pFile) {
-    cout << "File not found " << pFileId << endl;
+    LOG_FATAL("File not found %lu \n", pFileId);
     bail(8);
   }
 
@@ -152,7 +152,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId,
     free(fileName);
     free(pFile);
   } else {
-    cout << "PFile not found in repo " << pFileId << endl;
+    LOG_FATAL("PFile not found in repo %lu \n", pFileId);
     bail(7);
   }
   return true;
@@ -211,52 +211,45 @@ bool saveLicenseMatchesToDatabase(const State &state,
         match.getMatchName(), match.getLicenseFullName(), match.getTextUrl());
   }
 
-  if (!databaseHandler.begin())
+  if (!databaseHandler.begin()) {
     return false;
-  if (matches.size() == 0) 
-  {
-    cout << "No license found\n";
-    if (!databaseHandler.insertNoResultInDatabase(state.getAgentId(), pFileId))
-      return false;
-  } 
-  else 
-  {
-    for (vector<Match>::const_iterator it = matches.begin();
-         it != matches.end(); ++it) 
-    {
-      const Match &match = *it;
-      int agentId = state.getAgentId();
-      string rfShortname = match.getMatchName();
-      int percent = match.getPercentage();
-      unsigned start = match.getStartPosition();
-      unsigned length = match.getLength();
-      unsigned long licenseId =
-          databaseHandler.getCachedLicenseIdForName(rfShortname);
+  }
+  for (vector<Match>::const_iterator it = matches.begin(); it != matches.end();
+       ++it) {
+    const Match &match = *it;
+    int agentId = state.getAgentId();
+    string rfShortname = match.getMatchName();
+    int percent = match.getPercentage();
+    unsigned start = match.getStartPosition();
+    unsigned length = match.getLength();
+    unsigned long licenseId =
+        databaseHandler.getCachedLicenseIdForName(rfShortname);
 
-      if (licenseId == 0) 
-      {
+    if (licenseId == 0) {
+      databaseHandler.rollback();
+      LOG_ERROR("cannot get licenseId for shortname '%s' \n",
+                rfShortname.c_str());
+      return false;
+    }
+    if (rfShortname == "No_license_found") {
+      if (!databaseHandler.insertNoResultInDatabase(agentId, pFileId, licenseId)) {
         databaseHandler.rollback();
-        cout << "cannot get licenseId for shortname '" + rfShortname + "'"
-             << endl;
+        LOG_ERROR("failing save licenseMatch \n");
         return false;
       }
-
+    } else {
       long licenseFileId = databaseHandler.saveLicenseMatch(agentId, pFileId,
                                                             licenseId, percent);
-      if (licenseFileId > 0) 
-      {
+      if (licenseFileId > 0) {
         bool highlightRes =
             databaseHandler.saveHighlightInfo(licenseFileId, start, length);
-        if (!highlightRes) 
-        {
+        if (!highlightRes) {
           databaseHandler.rollback();
-          cout << "failing save licensehighlight" << endl;
+          LOG_ERROR("failing save licensehighlight \n");
         }
-      } 
-      else 
-      {
+      } else {
         databaseHandler.rollback();
-        cout << "failing save licenseMatch" << endl;
+        LOG_ERROR("failing save licenseMatch \n");
         return false;
       }
     }
@@ -288,7 +281,7 @@ bool saveOtherMatchesToDatabase(const State &state,
     if (!databaseHandler.insertInDatabase(entry))
     {
       databaseHandler.rollback();
-      cout << "failing save otherMatches" << endl;
+      LOG_ERROR("failing save otherMatches \n");
       return false;
     }
   }
@@ -307,7 +300,6 @@ bool saveOtherMatchesToDatabase(const State &state,
  */
 bool parseCommandLine(int argc, char **argv, string &cliOption, bool &ignoreFilesWithMimeType) 
 {
-  cout<<"parsing started\n";
   po::options_description desc(AGENT_NAME ": available options");
   desc.add_options()
   ("help,h", "show this help")
@@ -324,7 +316,6 @@ bool parseCommandLine(int argc, char **argv, string &cliOption, bool &ignoreFile
   po::variables_map vm;
   try
   {
-    cout<<"parsing check started\n";
     po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
     if (vm.count("help") > 0) 
     {
@@ -341,16 +332,15 @@ bool parseCommandLine(int argc, char **argv, string &cliOption, bool &ignoreFile
   } 
   catch (boost::bad_any_cast &) 
   {
-    cout << "wrong parameter type\n";
+    LOG_FATAL("wrong parameter type\n ");
     cout << desc << "\n";
     return false;
   } 
   catch (boost::program_options::error &) 
   {
-    cout << "wrong command line arguments\n";
+    LOG_FATAL("wrong command line arguments\n");
     cout << desc << "\n";
     return false;
   }
-  cout<<"parsing success: cliOption = "<<cliOption<<" ignoreFilesWithMimeType = "<<ignoreFilesWithMimeType<<"\n";
   return true;
 }

@@ -32,6 +32,7 @@ public:
   Match(string matchName, string type, unsigned startPosition, unsigned length);
   Match(string matchName, int percentage, string licenseFullName,
         string textUrl, unsigned startPosition, unsigned length);
+  Match(string matchName);
   ~Match();
   const string getType() const;
   const string getMatchName() const;

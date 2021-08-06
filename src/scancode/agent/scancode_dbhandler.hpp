@@ -78,7 +78,7 @@ public:
   ScancodeDatabaseHandler(ScancodeDatabaseHandler&& other) : fo::AgentDatabaseHandler(std::move(other)) {};
   ScancodeDatabaseHandler spawn() const;
   long saveLicenseMatch(int agentId, long pFileId, long licenseId, int percentMatch);
-  bool insertNoResultInDatabase(int agentId, long pFileId);
+  bool insertNoResultInDatabase(int agentId, long pFileId, long licenseId);
 
   bool saveHighlightInfo(long licenseFileId, unsigned start, unsigned length);
   void insertOrCacheLicenseIdForName(std::string const& rfShortName, std::string const& rfFullname, std::string const& rfTexturl);

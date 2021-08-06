@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
   state.setCliOptions(scanFlags);
     if (!databaseHandler.createTables())
     {
-      std::cout << "FATAL: initialization failed" << std::endl;
+      LOG_FATAL("initialization failed \n");
       return_sched(9);
     }
 

@@ -119,17 +119,17 @@ vector<unsigned long> ScancodeDatabaseHandler::queryFileIdsForUpload(int uploadI
  * @param pFileId   pfile_pk in pfile dataabse table
  * @return True on successful insertion, false otherwise
  */
-bool ScancodeDatabaseHandler::insertNoResultInDatabase(int agentId, long pFileId )
+bool ScancodeDatabaseHandler::insertNoResultInDatabase(int agentId, long pFileId ,long licenseId)
 {
   return dbManager.execPrepared(
     fo_dbManager_PrepareStamement(dbManager.getStruct_dbManager(),
       "scancodeInsertNoLicense",
       "INSERT INTO license_file"
-      "(agent_fk, pfile_fk)"
-      " VALUES($1,$2)",
-      int, long
+      "(agent_fk, pfile_fk, rf_fk)"
+      " VALUES($1,$2,$3)",
+      int, long, long
     ),
-    agentId, pFileId);
+    agentId, pFileId, licenseId);
 }
 
 /**
@@ -467,16 +467,11 @@ bool ScancodeDatabaseHandler::createTables() const
       dbManager.rollback();
       ++failedCounter;
       if (failedCounter < MAX_TABLE_CREATION_RETRIES)
-        std::cout << "WARNING: table creation failed: trying again"
-          " (" << failedCounter << "/" << MAX_TABLE_CREATION_RETRIES << ")"
-          << std::endl;
+      LOG_WARNING("table creation failed: trying again (%d/%d) \n", failedCounter, MAX_TABLE_CREATION_RETRIES);
     }
   }
   if (tablesChecked && (failedCounter > 0))
-    std::cout << "NOTICE: table creation succeded on try "
-      << failedCounter << "/" << MAX_TABLE_CREATION_RETRIES
-      << std::endl;
-
+    LOG_NOTICE("table creation succeded on try %d/%d \n", failedCounter, MAX_TABLE_CREATION_RETRIES);
   dbManager.ignoreWarnings(false);
   return tablesChecked;
 }
@@ -521,8 +516,8 @@ const ScancodeDatabaseHandler::ColumnDef
  */
 bool ScancodeDatabaseHandler::createTableAgentFindings( string tableName) const
 {
-  const char *tablename;
-  const char *sequencename;
+  const char *tablename = "";
+  const char *sequencename = "";
   if (tableName == "scancode_copyright") {
     tablename = "scancode_copyright";
     sequencename = "scancode_copyright_pk_seq";
@@ -530,7 +525,6 @@ bool ScancodeDatabaseHandler::createTableAgentFindings( string tableName) const
     tablename = "scancode_author";
     sequencename = "scancode_author_pk_seq";
   }
-  cout << "CHECK here " << tablename << " " << sequencename<<"\n";
   if (!dbManager.sequenceExists(sequencename)) {
     RETURN_IF_FALSE(dbManager.queryPrintf("CREATE SEQUENCE %s"
       " START WITH 1"
@@ -634,9 +628,9 @@ const ScancodeDatabaseHandler::ColumnDef
  */
 bool ScancodeDatabaseHandler::createTableAgentEvents( string tableName) const
 {
-  const char *tablename;
-  const char *etablename;
-  const char *esequencename;
+  const char *tablename = "";
+  const char *etablename = "";
+  const char *esequencename = "";
   if (tableName == "scancode_copyright_event") {
     etablename = "scancode_copyright_event";
     esequencename = "scancode_copyright_event_pk_seq";
